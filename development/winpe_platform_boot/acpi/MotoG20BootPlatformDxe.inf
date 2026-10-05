@@ -1,0 +1,36 @@
+[Defines]
+  INF_VERSION = 0x0001001B
+  BASE_NAME = MotoG20BootPlatformDxe
+  FILE_GUID = 67187f3f-2c4f-46b3-8f4b-9fe552471c88
+  MODULE_TYPE = DXE_DRIVER
+  VERSION_STRING = 0.1
+  ENTRY_POINT = MotoG20BootPlatformEntry
+[Sources]
+  MotoG20BootPlatformDxe.c
+  MotoG20BootPlatformDiagnostic.h
+  MotoG20AcpiTables.generated.h
+  ../memory/memory_plan.c
+  ../memory/memory_plan.h
+  ../cpu/cpu_boot_plan.c
+  ../cpu/cpu_boot_plan.h
+  ../cpu/MotoG20WindowsCpuPrepare.c
+[Packages]
+  MdePkg/MdePkg.dec
+[LibraryClasses]
+  ArmSmcLib
+  BaseLib
+  BaseMemoryLib
+  CacheMaintenanceLib
+  FdtLib
+  HobLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+[Guids]
+  gFdtHobGuid
+[Protocols]
+  gEfiAcpiTableProtocolGuid
+  gEfiSmbiosProtocolGuid
+[BuildOptions]
+  GCC:*_*_AARCH64_CC_FLAGS = -DMOTO_EDK2
+[Depex]
+  gEfiAcpiTableProtocolGuid AND gEfiSmbiosProtocolGuid

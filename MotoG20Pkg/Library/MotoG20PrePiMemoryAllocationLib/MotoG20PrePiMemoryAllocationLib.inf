@@ -1,0 +1,19 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20PrePiMemoryAllocationLib
+  FILE_GUID                      = 92A9A7E4-3350-43B7-93D9-6D2CE92D4088
+  MODULE_TYPE                    = SEC
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MemoryAllocationLib
+
+[Sources]
+  MemoryAllocationLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+
+[LibraryClasses]
+  DebugLib
+  BaseMemoryLib
+  HobLib

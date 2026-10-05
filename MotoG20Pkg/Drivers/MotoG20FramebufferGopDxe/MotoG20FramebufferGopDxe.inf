@@ -1,0 +1,43 @@
+## @file
+#  GOP producer for the bootloader-initialized Moto G20 framebuffer.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20FramebufferGopDxe
+  FILE_GUID                      = 50F9E65A-1C38-4D77-AB1D-830EA33AA1C0
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = MotoG20FramebufferGopDxeEntryPoint
+
+[Sources]
+  MotoG20FramebufferGopDxe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  BaseMemoryLib
+  DebugLib
+  DxeServicesTableLib
+  FrameBufferBltLib
+  MemoryAllocationLib
+  PcdLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+
+[Protocols]
+  gEfiCpuArchProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiGraphicsOutputProtocolGuid
+
+[Pcd]
+  gMotoG20TokenSpaceGuid.PcdMotoG20FramebufferBase
+  gMotoG20TokenSpaceGuid.PcdMotoG20FramebufferSize
+
+[Depex]
+  gEfiCpuArchProtocolGuid

@@ -1,0 +1,28 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                     = MotoG20Mmu3aVbarProbe
+  FILE_GUID                     = 73E9C6D5-1E04-4E3A-9A0A-9D0A3A7D3A01
+  MODULE_TYPE                   = BASE
+  VERSION_STRING                = 0.1
+
+[Sources]
+  EntryPoint.S
+  Mmu3aCapture.S
+  VbarSpProbe.c
+  ../MotoG20EarlyInit.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  HobLib
+  ArmLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  MotoG20TranslationTableLib
+  PrePiHobListPointerLib
+
+[BuildOptions]
+  DEBUG_GCCNOLTO_AARCH64_CC_FLAGS = -fno-stack-protector

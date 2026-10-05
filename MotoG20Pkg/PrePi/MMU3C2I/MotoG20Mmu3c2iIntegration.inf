@@ -1,0 +1,37 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20Mmu3c2iIntegration
+  FILE_GUID                      = B3FAAE3B-910F-5ED3-AB3D-8416CDB0F893
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 0.1
+
+[Sources]
+  ../MMU3B1/EntryPoint.S
+  ../MotoG20Mmu3EnableStub.S
+  ../MMU3C2H/LocalEl2VectorsMmu3c2h.S
+  ../MMU3C2H/MotoG20Mmu3c1ExceptionMmu3c2h.S
+  ../MMU3C2H/Mmu3b1ProbeMmu3c2h.c
+  ../MMU3C2F/MotoG20EarlyInitMmu3c2f.generated.c
+  ../MMU3C2H/MotoG20Mmu3c2cTelemetryMmu3c2h.c
+  ../MMU3C2H/MotoG20Mmu3c2hDispatcher.S
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+  MotoG20Pkg/MotoG20Mmu3c2fPkg.dec
+
+[LibraryClasses]
+  HobLib
+  ArmLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  MotoG20TranslationTableLib
+  MotoG20PreOsTelemetryLib
+  MotoG20PostMmuTelemetryLib
+  PrePiHobListPointerLib
+
+[BuildOptions]
+  DEBUG_GCCNOLTO_AARCH64_CC_FLAGS = -fno-stack-protector -ffixed-x18
+  DEBUG_GCCNOLTO_AARCH64_PP_FLAGS = -DMOTO_G20_MMU3C2C_TELEMETRY=1
+  DEBUG_GCCNOLTO_AARCH64_DLINK_FLAGS = -Wl,-T,$(WORKSPACE)/MotoG20Pkg/PrePi/MMU3C2I/MotoG20Mmu3c2i.lds -Wl,-u,MotoG20TelemetryV2PublishPreMmu -Wl,-u,MotoG20TelemetryV2PublishPostMmu -Wl,-u,MotoG20TelemetryV2PublishByMState

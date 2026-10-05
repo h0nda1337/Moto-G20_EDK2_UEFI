@@ -1,0 +1,11 @@
+[Defines]
+  DEC_SPECIFICATION              = 0x0001001B
+  PACKAGE_NAME                   = MotoG20Mmu3c2fPkg
+  PACKAGE_GUID                   = 2E56B2A9-D0D2-4B89-9CB0-47E4D53C2F01
+  PACKAGE_VERSION                = 0.1
+
+[Includes]
+  Include
+
+[LibraryClasses]
+  MotoG20PostMmuTelemetryLib|Include/Library/MotoG20PostMmuTelemetryLib.h

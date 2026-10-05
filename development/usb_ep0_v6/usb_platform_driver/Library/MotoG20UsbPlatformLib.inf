@@ -1,0 +1,23 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20UsbPlatformLib
+  FILE_GUID                      = 95473366-DA23-4C3F-BD5C-E31986148B29
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 0.1
+  LIBRARY_CLASS                  = MotoG20UsbPlatformLib|DXE_DRIVER
+
+[Sources]
+  MotoG20UsbPlatformLib.c
+  MotoG20UsbPlatformLib.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+
+[LibraryClasses]
+  BaseLib
+  BaseMemoryLib
+  IoLib
+  TimerLib
+  UefiBootServicesTableLib
+  DxeServicesTableLib

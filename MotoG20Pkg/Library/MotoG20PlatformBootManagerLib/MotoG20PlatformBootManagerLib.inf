@@ -1,0 +1,44 @@
+## @file
+#  Minimal BDS policy for the Moto G20 Foundation console milestone.
+#
+#  SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20PlatformBootManagerLib
+  FILE_GUID                      = 935BC9D7-4AE7-4D21-BD30-058573052011
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = PlatformBootManagerLib|DXE_DRIVER
+
+[Sources]
+  MotoG20ConsoleDiagnostic.c
+  MotoG20PlatformBootManagerLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+  ShellPkg/ShellPkg.dec
+
+[LibraryClasses]
+  BaseMemoryLib
+  DebugLib
+  DevicePathLib
+  MemoryAllocationLib
+  MotoG20DxeTelemetryLib
+  UefiBootManagerLib
+  UefiBootServicesTableLib
+  UefiLib
+
+[Guids]
+  gEfiConsoleOutDeviceGuid
+  gUefiShellFileGuid
+
+[Protocols]
+  gEfiSimpleTextOutProtocolGuid
+  gMotoG20DxeProgressControlProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiFirmwareVolume2ProtocolGuid
+  gEfiGraphicsOutputProtocolGuid

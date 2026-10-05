@@ -1,0 +1,14 @@
+.build/
+artifacts/
+__pycache__/
+*.pyc
+*.o
+*.obj
+*.elf
+*.efi
+*.img
+*.wim
+*.pac
+*.vhd*
+*.zip
+development/**/evidence/

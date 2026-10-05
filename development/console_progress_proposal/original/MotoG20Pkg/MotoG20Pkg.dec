@@ -1,0 +1,21 @@
+[Defines]
+  DEC_SPECIFICATION              = 0x0001001B
+  PACKAGE_NAME                   = MotoG20Pkg
+  PACKAGE_GUID                   = 8D73E3A4-8E52-4A40-9B13-56B224CF7801
+  PACKAGE_VERSION                = 0.1
+
+[Includes]
+  Include
+
+[LibraryClasses]
+  MotoG20DxeTelemetryLib|Include/Library/MotoG20DxeTelemetryLib.h
+  MotoG20PreOsTelemetryLib|Include/Library/MotoG20PreOsTelemetryLib.h
+
+[Guids]
+  gMotoG20TokenSpaceGuid = { 0x8d73e3a4, 0x8e52, 0x4a40, { 0x9b, 0x13, 0x56, 0xb2, 0x24, 0xcf, 0x78, 0x01 } }
+
+[PcdsFixedAtBuild]
+  gMotoG20TokenSpaceGuid.PcdMotoG20FramebufferBase|0x9E000000|UINT64|0x00000001
+  gMotoG20TokenSpaceGuid.PcdMotoG20FramebufferSize|0x00465000|UINT64|0x00000002
+  gMotoG20TokenSpaceGuid.PcdMotoG20DtbBase|0x82000000|UINT64|0x00000003
+  gMotoG20TokenSpaceGuid.PcdMotoG20TimerFrequency|26000000|UINT64|0x00000004

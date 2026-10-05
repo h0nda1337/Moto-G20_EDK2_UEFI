@@ -1,0 +1,18 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20DxeTelemetryLib
+  FILE_GUID                      = 2CFB5938-3116-4C35-BF7C-2D74E8AE1D71
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MotoG20DxeTelemetryLib|DXE_CORE DXE_DRIVER
+
+[Sources]
+  MotoG20DxeTelemetryLib.c
+
+[Packages]
+  ArmPkg/ArmPkg.dec
+  MdePkg/MdePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  ArmSmcLib

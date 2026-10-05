@@ -1,0 +1,17 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20DxeDebugLib
+  FILE_GUID                      = 9FDCA032-6607-427C-921D-98510F4E873A
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = DebugLib|DXE_CORE
+
+[Sources]
+  MotoG20DxeDebugLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  MotoG20DxeTelemetryLib

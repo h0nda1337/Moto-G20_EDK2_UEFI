@@ -1,0 +1,18 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20DxeExceptionHandlerLib
+  FILE_GUID                      = F94999A5-E404-4AFB-BBA2-779991C682A0
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = DefaultExceptionHandlerLib|DXE_CORE DXE_DRIVER
+
+[Sources]
+  MotoG20DxeExceptionHandlerLib.c
+
+[Packages]
+  ArmPkg/ArmPkg.dec
+  MdePkg/MdePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  MotoG20DxeTelemetryLib

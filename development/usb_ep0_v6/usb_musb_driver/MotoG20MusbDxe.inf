@@ -1,0 +1,39 @@
+## @file
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+##
+[Defines]
+  INF_VERSION = 0x0001001B
+  BASE_NAME = MotoG20MusbDxe
+  FILE_GUID = 6181AF65-A2CF-494F-BCB1-9127784B8258
+  MODULE_TYPE = DXE_DRIVER
+  VERSION_STRING = 0.1
+  ENTRY_POINT = MotoG20MusbEntryPoint
+
+[Sources]
+  MotoG20MusbDxe.c
+  MotoG20MusbRegs.h
+  MotoG20UsbDiagnostic.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  UefiDriverEntryPoint
+  UefiBootServicesTableLib
+  BaseMemoryLib
+  IoLib
+  TimerLib
+  MotoG20UsbPlatformLib
+
+[Protocols]
+  gEfiUsb2HcProtocolGuid
+  gEfiDevicePathProtocolGuid
+  gEfiCpuArchProtocolGuid
+  gEfiTimerArchProtocolGuid
+
+[Guids]
+  gEfiEventExitBootServicesGuid
+
+[Depex]
+  gEfiCpuArchProtocolGuid AND gEfiTimerArchProtocolGuid

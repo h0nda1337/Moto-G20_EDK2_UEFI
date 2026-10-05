@@ -1,0 +1,21 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20DxeCoreEntryPoint
+  FILE_GUID                      = 574351F0-AC09-4DE0-B420-12F69A0E02E1
+  MODULE_TYPE                    = DXE_CORE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = DxeCoreEntryPoint|DXE_CORE
+
+[Sources]
+  MotoG20DxeCoreEntryPoint.c
+  MotoG20DxePlacementPad.S
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  BaseLib
+  DebugLib
+  MotoG20DxeTelemetryLib
+  StackCheckLib

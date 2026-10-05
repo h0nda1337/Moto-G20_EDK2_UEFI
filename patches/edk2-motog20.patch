@@ -1,0 +1,491 @@
+diff --git a/BaseTools/Source/Python/AutoGen/GenMake.py b/BaseTools/Source/Python/AutoGen/GenMake.py
+index b729103..d93dbcd 100755
+--- a/BaseTools/Source/Python/AutoGen/GenMake.py
++++ b/BaseTools/Source/Python/AutoGen/GenMake.py
+@@ -99,11 +99,11 @@ class BuildFile(object):
+     '''
+ 
+     ## Fixed header string for makefile
+-    _GMAKE_MAKEFILE_HEADER = '''
+-ifeq (Windows, $(findstring Windows,$(OS)))
+-  SHELL := cmd.exe
+-endif
+-    '''
++    _GMAKE_MAKEFILE_HEADER = '''
++ifeq (Windows, $(findstring Windows,$(OS)))
++  SHELL := cmd.exe
++endif
++    '''
+ 
+ 
+     ## Header string for each type of build file
+@@ -192,7 +192,7 @@ endif
+         else:
+             self._FileType = GMAKE_FILETYPE
+ 
+-        if sys.platform == "win32":
++        if sys.platform == "win32" and os.environ.get("EDK2_POSIX_SHELL", "0") != "1":
+             self._Platform = WIN32_PLATFORM
+         else:
+             self._Platform = POSIX_PLATFORM
+diff --git a/MdeModulePkg/Core/Dxe/DxeMain.h b/MdeModulePkg/Core/Dxe/DxeMain.h
+index a0ef0ac..96ce71c 100644
+--- a/MdeModulePkg/Core/Dxe/DxeMain.h
++++ b/MdeModulePkg/Core/Dxe/DxeMain.h
+@@ -410,10 +410,25 @@ CoreNotifyOnProtocolInstallation (
+   @retval EFI_NOT_FOUND  At least one AP service is not available
+ 
+ **/
+-EFI_STATUS
+-CoreAllEfiServicesAvailable (
+-  VOID
+-  );
++EFI_STATUS
++CoreAllEfiServicesAvailable (
++  VOID
++  );
++
++/**
++  Return a stable bit mask of unavailable architectural protocols.
++
++  Bit positions follow the mArchProtocols[] order in DxeProtocolNotify.c.
++
++  @param[out] MissingCount  Optional count of unavailable protocols.
++
++  @return Bit mask of unavailable architectural protocols.
++
++**/
++UINT64
++CoreGetMissingArchProtocolMask (
++  OUT UINTN  *MissingCount OPTIONAL
++  );
+ 
+ /**
+   Calcualte the 32-bit CRC in a EFI table using the service provided by the
+diff --git a/MdeModulePkg/Core/Dxe/DxeMain.inf b/MdeModulePkg/Core/Dxe/DxeMain.inf
+index 40e7dc8..f590d13 100644
+--- a/MdeModulePkg/Core/Dxe/DxeMain.inf
++++ b/MdeModulePkg/Core/Dxe/DxeMain.inf
+@@ -68,8 +68,9 @@
+   DxeMain/DxeProtocolNotify.c
+   DxeMain/DxeMain.c
+ 
+-[Packages]
+-  MdePkg/MdePkg.dec
++[Packages]
++  MotoG20Pkg/MotoG20Pkg.dec
++  MdePkg/MdePkg.dec
+   MdeModulePkg/MdeModulePkg.dec
+ 
+ [LibraryClasses]
+diff --git a/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c b/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
+index e7b3d0b..3f60337 100644
+--- a/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
++++ b/MdeModulePkg/Core/Dxe/DxeMain/DxeMain.c
+@@ -6,7 +6,8 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
+ 
+ **/
+ 
+-#include "DxeMain.h"
++#include "DxeMain.h"
++#include <Library/MotoG20DxeTelemetryLib.h>
+ 
+ //
+ // DXE Core Global Variables for Protocols from PEI
+@@ -232,19 +233,28 @@ GLOBAL_REMOVE_IF_UNREFERENCED EFI_LOAD_FIXED_ADDRESS_CONFIGURATION_TABLE  gLoadM
+ **/
+ VOID
+ EFIAPI
+-DxeMain (
++DxeMain (
+   IN  VOID  *HobStart
+   )
+-{
++{
+   EFI_STATUS                    Status;
+   EFI_PHYSICAL_ADDRESS          MemoryBaseAddress;
+   UINT64                        MemoryLength;
+   PE_COFF_LOADER_IMAGE_CONTEXT  ImageContext;
+   UINTN                         Index;
+   EFI_HOB_GUID_TYPE             *GuidHob;
+-  EFI_VECTOR_HANDOFF_INFO       *VectorInfoList;
+-  EFI_VECTOR_HANDOFF_INFO       *VectorInfo;
+-  VOID                          *EntryPoint;
++  EFI_VECTOR_HANDOFF_INFO       *VectorInfoList;
++  EFI_VECTOR_HANDOFF_INFO       *VectorInfo;
++  VOID                          *EntryPoint;
++  UINT64                        MissingArchProtocolMask;
++  UINTN                         MissingArchProtocolCount;
++
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageMainEntry,
++    EFI_SUCCESS,
++    (UINT64)(UINTN)HobStart,
++    0U
++    );
+ 
+   //
+   // Setup the default exception handlers
+@@ -261,8 +271,14 @@ DxeMain (
+   //
+   // Setup Exception Stack
+   //
+-  Status = InitializeSeparateExceptionStacks (NULL, NULL);
+-  ASSERT_EFI_ERROR (Status);
++  Status = InitializeSeparateExceptionStacks (NULL, NULL);
++  ASSERT_EFI_ERROR (Status);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageExceptionsReady,
++    Status,
++    (UINT64)(UINTN)VectorInfoList,
++    0U
++    );
+ 
+   //
+   // Initialize Debug Agent to support source level debug in DXE phase
+@@ -272,27 +288,51 @@ DxeMain (
+   //
+   // Initialize Memory Services
+   //
+-  CoreInitializeMemoryServices (&HobStart, &MemoryBaseAddress, &MemoryLength);
++  CoreInitializeMemoryServices (&HobStart, &MemoryBaseAddress, &MemoryLength);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageMemoryServices,
++    EFI_SUCCESS,
++    MemoryBaseAddress,
++    MemoryLength
++    );
+ 
+   MemoryProfileInit (HobStart);
+ 
+   //
+   // Start the Handle Services.
+   //
+-  Status = CoreInitializeHandleServices ();
+-  ASSERT_EFI_ERROR (Status);
++  Status = CoreInitializeHandleServices ();
++  ASSERT_EFI_ERROR (Status);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageHandleServices,
++    Status,
++    (UINT64)(UINTN)HobStart,
++    0U
++    );
+ 
+   //
+   // Start the Image Services.
+   //
+-  Status = CoreInitializeImageServices (HobStart);
+-  ASSERT_EFI_ERROR (Status);
++  Status = CoreInitializeImageServices (HobStart);
++  ASSERT_EFI_ERROR (Status);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageImageServices,
++    Status,
++    (UINT64)(UINTN)gDxeCoreLoadedImage,
++    (UINT64)(UINTN)gDxeCoreImageHandle
++    );
+ 
+   //
+   // Initialize the Global Coherency Domain Services
+   //
+-  Status = CoreInitializeGcdServices (&HobStart, MemoryBaseAddress, MemoryLength);
+-  ASSERT_EFI_ERROR (Status);
++  Status = CoreInitializeGcdServices (&HobStart, MemoryBaseAddress, MemoryLength);
++  ASSERT_EFI_ERROR (Status);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageGcdServices,
++    Status,
++    MemoryBaseAddress,
++    MemoryLength
++    );
+ 
+   //
+   // Allocate the EFI System Table and EFI Runtime Service Table from EfiRuntimeServicesData
+@@ -304,7 +344,13 @@ DxeMain (
+   gDxeCoreRT = AllocateRuntimeCopyPool (sizeof (EFI_RUNTIME_SERVICES), &mEfiRuntimeServicesTableTemplate);
+   ASSERT (gDxeCoreRT != NULL);
+ 
+-  gDxeCoreST->RuntimeServices = gDxeCoreRT;
++  gDxeCoreST->RuntimeServices = gDxeCoreRT;
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageSystemTables,
++    EFI_SUCCESS,
++    (UINT64)(UINTN)gDxeCoreST,
++    (UINT64)(UINTN)gDxeCoreRT
++    );
+ 
+   //
+   // Update DXE Core Loaded Image Protocol with allocated UEFI System Table
+@@ -314,7 +360,13 @@ DxeMain (
+   //
+   // Call constructor for all libraries
+   //
+-  ProcessLibraryConstructorList (gDxeCoreImageHandle, gDxeCoreST);
++  ProcessLibraryConstructorList (gDxeCoreImageHandle, gDxeCoreST);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageConstructors,
++    EFI_SUCCESS,
++    (UINT64)(UINTN)gDxeCoreImageHandle,
++    (UINT64)(UINTN)gDxeCoreST
++    );
+   PERF_CROSSMODULE_END ("PEI");
+   PERF_CROSSMODULE_BEGIN ("DXE");
+ 
+@@ -458,8 +510,14 @@ DxeMain (
+   //
+   // Initialize the Event Services
+   //
+-  Status = CoreInitializeEventServices ();
+-  ASSERT_EFI_ERROR (Status);
++  Status = CoreInitializeEventServices ();
++  ASSERT_EFI_ERROR (Status);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageEvents,
++    Status,
++    0U,
++    0U
++    );
+ 
+   //
+   // Give the debug agent a chance to initialize with events.
+@@ -533,18 +591,42 @@ DxeMain (
+   //
+   // Produce the Section Extraction Protocol
+   //
+-  Status = InitializeSectionExtraction (gDxeCoreImageHandle, gDxeCoreST);
+-  ASSERT_EFI_ERROR (Status);
++  Status = InitializeSectionExtraction (gDxeCoreImageHandle, gDxeCoreST);
++  ASSERT_EFI_ERROR (Status);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageFirmwareVolumes,
++    Status,
++    (UINT64)(UINTN)gDxeCoreImageHandle,
++    (UINT64)(UINTN)gDxeCoreST
++    );
+ 
+   //
+   // Initialize the DXE Dispatcher
+   //
+-  CoreInitializeDispatcher ();
++  CoreInitializeDispatcher ();
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageDispatcherReady,
++    EFI_SUCCESS,
++    0U,
++    0U
++    );
+ 
+   //
+   // Invoke the DXE Dispatcher
+   //
+-  CoreDispatcher ();
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageDispatcherEnter,
++    EFI_SUCCESS,
++    0U,
++    0U
++    );
++  CoreDispatcher ();
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageDispatcherReturned,
++    EFI_SUCCESS,
++    0U,
++    0U
++    );
+ 
+   //
+   // Display Architectural protocols that were not loaded if this is DEBUG build
+@@ -564,18 +646,34 @@ DxeMain (
+   //
+   // Assert if the Architectural Protocols are not present.
+   //
+-  Status = CoreAllEfiServicesAvailable ();
+-  if (EFI_ERROR (Status)) {
+-    //
+-    // Report Status code that some Architectural Protocols are not present.
+-    //
++  Status = CoreAllEfiServicesAvailable ();
++  if (EFI_ERROR (Status)) {
++    MissingArchProtocolCount = 0U;
++    MissingArchProtocolMask  = CoreGetMissingArchProtocolMask (
++                                 &MissingArchProtocolCount
++                                 );
++    //
++    // Report Status code that some Architectural Protocols are not present.
++    //
+     REPORT_STATUS_CODE (
+-      EFI_ERROR_CODE | EFI_ERROR_MAJOR,
+-      (EFI_SOFTWARE_DXE_CORE | EFI_SW_DXE_CORE_EC_NO_ARCH)
+-      );
+-  }
+-
+-  ASSERT_EFI_ERROR (Status);
++      EFI_ERROR_CODE | EFI_ERROR_MAJOR,
++      (EFI_SOFTWARE_DXE_CORE | EFI_SW_DXE_CORE_EC_NO_ARCH)
++      );
++    MotoG20DxeTelemetryFailAndReset (
++      MotoG20DxeStageArchitecturalMissing,
++      Status,
++      MissingArchProtocolMask,
++      (UINT64)MissingArchProtocolCount
++      );
++  }
++
++  ASSERT_EFI_ERROR (Status);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageArchitecturalReady,
++    Status,
++    0U,
++    0U
++    );
+ 
+   //
+   // Report Status code before transfer control to BDS
+@@ -588,7 +686,13 @@ DxeMain (
+   //
+   // Transfer control to the BDS Architectural Protocol
+   //
+-  gBds->Entry (gBds);
++  MotoG20DxeTelemetryCheckpoint (
++    MotoG20DxeStageBdsTransfer,
++    EFI_SUCCESS,
++    (UINT64)(UINTN)gBds,
++    0U
++    );
++  gBds->Entry (gBds);
+ 
+   //
+   // BDS should never return
+diff --git a/MdeModulePkg/Core/Dxe/DxeMain/DxeProtocolNotify.c b/MdeModulePkg/Core/Dxe/DxeMain/DxeProtocolNotify.c
+index 3fe0294..fee51be 100644
+--- a/MdeModulePkg/Core/Dxe/DxeMain/DxeProtocolNotify.c
++++ b/MdeModulePkg/Core/Dxe/DxeMain/DxeProtocolNotify.c
+@@ -76,10 +76,10 @@ GLOBAL_REMOVE_IF_UNREFERENCED CONST GUID_TO_STRING_PROTOCOL_ENTRY  mMissingProto
+   @retval EFI_NOT_FOUND  At least one AP service is not available
+ 
+ **/
+-EFI_STATUS
+-CoreAllEfiServicesAvailable (
+-  VOID
+-  )
++EFI_STATUS
++CoreAllEfiServicesAvailable (
++  VOID
++  )
+ {
+   EFI_CORE_PROTOCOL_NOTIFY_ENTRY  *Entry;
+ 
+@@ -88,12 +88,50 @@ CoreAllEfiServicesAvailable (
+       return EFI_NOT_FOUND;
+     }
+   }
+-
+-  return EFI_SUCCESS;
+-}
+-
+-/**
+-  Notification event handler registered by CoreNotifyOnArchProtocolInstallation ().
++
++  return EFI_SUCCESS;
++}
++
++/**
++  Return a stable bit mask of unavailable architectural protocols.
++
++  Bit positions follow the mArchProtocols[] order above.  The array currently
++  contains thirteen mandatory protocols, so every shift is bounded below 64.
++
++  @param[out] MissingCount  Optional count of unavailable protocols.
++
++  @return Bit mask of unavailable architectural protocols.
++
++**/
++UINT64
++CoreGetMissingArchProtocolMask (
++  OUT UINTN  *MissingCount OPTIONAL
++  )
++{
++  EFI_CORE_PROTOCOL_NOTIFY_ENTRY  *Entry;
++  UINT64                          MissingMask;
++  UINTN                           Count;
++  UINTN                           Index;
++
++  MissingMask = 0U;
++  Count       = 0U;
++  Index       = 0U;
++  for (Entry = mArchProtocols; Entry->ProtocolGuid != NULL; Entry++, Index++) {
++    if (!Entry->Present) {
++      MissingMask |= (1ULL << Index);
++      Count++;
++    }
++  }
++
++  if (MissingCount != NULL) {
++    *MissingCount = Count;
++  }
++
++  return MissingMask;
++}
++
++/**
++  Notification event handler registered by CoreNotifyOnArchProtocolInstallation ().
+   This notify function is registered for every architectural protocol. This handler
+   updates mArchProtocol[] array entry with protocol instance data and sets it's
+   present flag to TRUE. If any constructor is required it is executed. The EFI
+diff --git a/MdeModulePkg/Core/Dxe/Image/Image.c b/MdeModulePkg/Core/Dxe/Image/Image.c
+index e39bb6a..1525b91 100644
+--- a/MdeModulePkg/Core/Dxe/Image/Image.c
++++ b/MdeModulePkg/Core/Dxe/Image/Image.c
+@@ -6,8 +6,9 @@ SPDX-License-Identifier: BSD-2-Clause-Patent
+ 
+ **/
+ 
+-#include "DxeMain.h"
+-#include "Image.h"
++#include "DxeMain.h"
++#include "Image.h"
++#include <Library/MotoG20DxeTelemetryLib.h>
+ 
+ //
+ // Module Globals
+@@ -1698,13 +1699,32 @@ CoreStartImage (
+   // The initial call to SetJump() must always return 0.
+   // Subsequent calls to LongJump() cause a non-zero value to be returned by SetJump().
+   //
+-  if (SetJumpFlag == 0) {
+-    RegisterMemoryProfileImage (Image, (Image->ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER));
+-    //
+-    // Call the image's entry point
+-    //
+-    Image->Started = TRUE;
+-    Image->Status  = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
++  if (SetJumpFlag == 0) {
++    RegisterMemoryProfileImage (Image, (Image->ImageContext.ImageType == EFI_IMAGE_SUBSYSTEM_EFI_APPLICATION ? EFI_FV_FILETYPE_APPLICATION : EFI_FV_FILETYPE_DRIVER));
++    //
++    // Capture the exact bytes DxeCore is about to execute.  Repeat the complete
++    // image instruction-cache synchronization here so it dominates the final
++    // indirect branch even if activity between LoadImage() and StartImage()
++    // populated a stale instruction-cache line.
++    //
++    MotoG20DxeTelemetryImageEntryPrepare (
++      Image->Info.ImageBase,
++      Image->Info.ImageSize,
++      (CONST VOID *)(UINTN)Image->EntryPoint,
++      Image->ImageContext.PdbPointer
++      );
++    InvalidateInstructionCacheRange (
++      Image->Info.ImageBase,
++      (UINTN)Image->Info.ImageSize
++      );
++    MotoG20DxeTelemetryImageEntryArmed ();
++
++    //
++    // Call the image's entry point.  No image-memory write is permitted between
++    // the armed snapshot above and this transfer.
++    //
++    Image->Started = TRUE;
++    Image->Status  = Image->EntryPoint (ImageHandle, Image->Info.SystemTable);
+ 
+     //
+     // Add some debug information if the image returned with error.

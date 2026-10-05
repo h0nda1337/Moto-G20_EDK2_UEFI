@@ -1,0 +1,18 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MMU2ATranslationTableCompileProbe
+  FILE_GUID                      = 4C0B1D93-EC85-4B44-9B43-8D6F0E3B7A5A
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 0.1
+  ENTRY_POINT                    = Mmu2aCompileProbeEntry
+
+[Sources]
+  MMU2ATranslationTableCompileProbe.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  MotoG20TranslationTableLib
+

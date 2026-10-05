@@ -1,0 +1,32 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20DxeProgressDxe
+  FILE_GUID                      = 037B92C7-AEA8-4569-844A-18939EFD7822
+  MODULE_TYPE                    = DXE_DRIVER
+  VERSION_STRING                 = 1.0
+  ENTRY_POINT                    = MotoG20DxeProgressEntryPoint
+
+[Sources]
+  MotoG20DxeProgressDxe.c
+
+[Packages]
+  EmbeddedPkg/EmbeddedPkg.dec
+  MdePkg/MdePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  MotoG20DxeTelemetryLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+  UefiLib
+
+[Protocols]
+  gEfiBdsArchProtocolGuid
+  gEfiCpuArchProtocolGuid
+  gEfiGraphicsOutputProtocolGuid
+  gEfiSimpleTextOutProtocolGuid
+  gEfiTimerArchProtocolGuid
+  gHardwareInterruptProtocolGuid
+
+[Depex]
+  TRUE

@@ -1,0 +1,17 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20TranslationTableLib
+  FILE_GUID                      = 1F2791CB-3739-4A50-8A8E-5B5A3F53D0B3
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MotoG20TranslationTableLib
+
+[Sources]
+  MotoG20TranslationTableLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+
+[LibraryClasses]
+  BaseMemoryLib
+  MemoryAllocationLib

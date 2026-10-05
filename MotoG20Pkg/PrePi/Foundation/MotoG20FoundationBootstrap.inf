@@ -1,0 +1,65 @@
+[Defines]
+  INF_VERSION                    = 1.30
+  BASE_NAME                      = MotoG20FoundationBootstrap
+  FILE_GUID                      = A4A89990-E205-4B74-96EA-D075B050CF43
+  MODULE_TYPE                    = BASE
+  VALID_ARCHITECTURES            = AARCH64
+  VERSION_STRING                 = 0.1
+
+[Sources]
+  ../MMU3B1/EntryPoint.S
+  ../MotoG20Mmu3EnableStub.S
+  ../MMU3C2H/LocalEl2VectorsMmu3c2h.S
+  ../MMU3C2H/MotoG20Mmu3c1ExceptionMmu3c2h.S
+  ../MMU3C2F/MotoG20EarlyInitMmu3c2f.generated.c
+  ../MMU3C2H/MotoG20Mmu3c2cTelemetryMmu3c2h.c
+  ../MMU3C2H/MotoG20Mmu3c2hDispatcher.S
+  Mmu3b1ProbeMmu3c2h.c
+  MotoG20FoundationBootstrap.h
+  MotoG20FoundationDisplay.h
+  MotoG20FoundationDisplay.c
+  MotoG20FoundationFvIdentity.generated.h
+  MotoG20FoundationFv.c
+  MotoG20FoundationLiveTable.c
+  MotoG20FoundationDxeHandoff.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MdeModulePkg/MdeModulePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  ArmPkg/ArmPkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+  MotoG20Pkg/MotoG20Mmu3c2fPkg.dec
+
+[LibraryClasses]
+  ArmLib
+  BaseLib
+  BaseMemoryLib
+  CacheMaintenanceLib
+  DebugLib
+  ExtractGuidedSectionLib
+  FdtLib
+  HobLib
+  MemoryAllocationLib
+  MotoG20PostMmuTelemetryLib
+  MotoG20PreOsTelemetryLib
+  MotoG20TranslationTableLib
+  PcdLib
+  PeCoffExtraActionLib
+  PeCoffLib
+  PrePiHobListPointerLib
+  PrePiLib
+  SafeIntLib
+  StackCheckLib
+  UefiDecompressLib
+
+[Guids]
+  gFdtHobGuid
+
+[FeaturePcd]
+  gEmbeddedTokenSpaceGuid.PcdPrePiProduceMemoryTypeInformationHob
+
+[BuildOptions]
+  DEBUG_GCCNOLTO_AARCH64_CC_FLAGS = -fno-stack-protector -ffixed-x18 -mgeneral-regs-only
+  DEBUG_GCCNOLTO_AARCH64_PP_FLAGS = -DMOTO_G20_MMU3C2C_TELEMETRY=1
+  DEBUG_GCCNOLTO_AARCH64_DLINK_FLAGS = -Wl,-T,$(WORKSPACE)/MotoG20Pkg/PrePi/Foundation/MotoG20Foundation.lds -Wl,-u,MotoG20TelemetryV2PublishPreMmu -Wl,-u,MotoG20TelemetryV2PublishPostMmu -Wl,-u,MotoG20TelemetryV2PublishByMState

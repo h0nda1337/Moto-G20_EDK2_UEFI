@@ -1,0 +1,31 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                     = MotoG20Mmu3b1LocalEl2Vectors
+  FILE_GUID                     = 9C7D3D88-0A6F-4B17-9F6A-2E8D9B0A6112
+  MODULE_TYPE                   = BASE
+  VERSION_STRING                = 0.1
+
+[Sources]
+  EntryPoint.S
+  ../MotoG20Mmu3EnableStub.S
+  LocalEl2Vectors.S
+  MotoG20Mmu3c1Exception.S
+  Mmu3b1Probe.c
+  ../MotoG20EarlyInit.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  HobLib
+  ArmLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  MotoG20TranslationTableLib
+  PrePiHobListPointerLib
+
+[BuildOptions]
+  DEBUG_GCCNOLTO_AARCH64_CC_FLAGS = -fno-stack-protector
+  DEBUG_GCCNOLTO_AARCH64_DLINK_FLAGS = -Wl,-T,$(WORKSPACE)/MotoG20Pkg/PrePi/MMU3B1/MotoG20Mmu3b1.lds

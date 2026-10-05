@@ -1,0 +1,14 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20HobListPointerLib
+  FILE_GUID                      = 41AA7DB2-BD6B-4EB4-984A-54F7BA2B85C1
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 0.1
+  LIBRARY_CLASS                  = PrePiHobListPointerLib
+
+[Sources]
+  MotoG20HobListPointerLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec

@@ -1,0 +1,14 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20PreOsTelemetryLib
+  FILE_GUID                      = A9049F7D-A3A0-48B2-99A9-3E43A78DDA72
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 2.0
+  LIBRARY_CLASS                  = MotoG20PreOsTelemetryLib|BASE SEC
+
+[Sources]
+  MotoG20PreOsTelemetryLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec

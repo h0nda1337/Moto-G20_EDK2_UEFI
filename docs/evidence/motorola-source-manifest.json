@@ -1,0 +1,151 @@
+{
+  "status": "PINNED_SOURCE_BYTES_VERIFIED",
+  "commit": "261390cdfff66efef9082bd70c1af0abd21d77f2",
+  "sources": [
+    {
+      "upstream_path": "drivers/mmc/host/sprd-sdhcr11.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/mmc/host/sprd-sdhcr11.c",
+      "sha256": "1D84F63E841D19F6D3CA0DFEE8564234C2E93EEF040476B45AFA99006EC3DD52",
+      "size": 68141,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_mmc_host_sprd-sdhcr11.c"
+    },
+    {
+      "upstream_path": "drivers/mmc/host/sprd-sdhcr11.h",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/mmc/host/sprd-sdhcr11.h",
+      "sha256": "A1252AD3DBAA8230307DFFD9A049C442C351C0DBFAAC1DE9B47949FC9D9415C8",
+      "size": 23533,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_mmc_host_sprd-sdhcr11.h"
+    },
+    {
+      "upstream_path": "drivers/mmc/host/sdhci.h",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/mmc/host/sdhci.h",
+      "sha256": "88681B613FAD0241078C1F969DD3F36B2C48EF37CC9EEEF257F7EF9FF3F9C7D0",
+      "size": 25443,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_mmc_host_sdhci.h"
+    },
+    {
+      "upstream_path": "drivers/mmc/core/slot-gpio.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/mmc/core/slot-gpio.c",
+      "sha256": "546043C66B3D9BD19A15A3B2BA49DD61F904BA8F0B1D4F762AEE784BF3ED2B1C",
+      "size": 8175,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_mmc_core_slot-gpio.c"
+    },
+    {
+      "upstream_path": "drivers/gpio/gpio-eic-sprd.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/gpio/gpio-eic-sprd.c",
+      "sha256": "F3038C4A9718A420A5FEC802554D0AD6DBE4E32979B69DA06CB2D7891B0A44CF",
+      "size": 21935,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_gpio_gpio-eic-sprd.c"
+    },
+    {
+      "upstream_path": "drivers/gpio/gpio-sprd.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/gpio/gpio-sprd.c",
+      "sha256": "BBB56153E123BB73DCD85E533B1D52FA2E0778683FC3F107E21CA54FC49451A8",
+      "size": 8443,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_gpio_gpio-sprd.c"
+    },
+    {
+      "upstream_path": "drivers/regulator/sc2730-regulator.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/regulator/sc2730-regulator.c",
+      "sha256": "8982358BF9A8EBE9C5F5FE31665679A1DE1D6C53D50DCDB86B1B9D86F197C4F5",
+      "size": 17713,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_regulator_sc2730-regulator.c"
+    },
+    {
+      "upstream_path": "drivers/clk/sprd/mux.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/clk/sprd/mux.c",
+      "sha256": "481D9323705D6D5F56240961010B288721BCD8615A8A6B3BD751A41CF867CC74",
+      "size": 3410,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_clk_sprd_mux.c"
+    },
+    {
+      "upstream_path": "drivers/clk/sprd/sharkl5pro-clk.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/clk/sprd/sharkl5pro-clk.c",
+      "sha256": "4D1764CD05F8656CF89601016B757E8EC4BAB1F77F8BA13CECA115DADF777C0A",
+      "size": 77347,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_clk_sprd_sharkl5pro-clk.c"
+    },
+    {
+      "upstream_path": "include/dt-bindings/clock/sprd,sharkl5pro-clk.h",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/include/dt-bindings/clock/sprd,sharkl5pro-clk.h",
+      "sha256": "2449D28EC16921CBA8889266215C8168DDE22E55475C534649F8495860849636",
+      "size": 10264,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\include_dt-bindings_clock_sprd,sharkl5pro-clk.h"
+    },
+    {
+      "upstream_path": "drivers/clk/sprd/gate.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/clk/sprd/gate.c",
+      "sha256": "8EDDE5859C49C7B55E2FE5AC8179BD3BDAD906CA604BC30284F894D84C174863",
+      "size": 2738,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_clk_sprd_gate.c"
+    },
+    {
+      "upstream_path": "drivers/clk/sprd/gate.h",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/clk/sprd/gate.h",
+      "sha256": "677DCAF39FCDA15C3B186297BDD979D4887D0A833D89F26751B0C065E98048C3",
+      "size": 2270,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_clk_sprd_gate.h"
+    },
+    {
+      "upstream_path": "include/linux/mmc/mmc.h",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/include/linux/mmc/mmc.h",
+      "sha256": "84ECF49C30644FDC2F9D7686D9CA67E1EF2195CDD6B26535FEFAF2EA0969619D",
+      "size": 17111,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\include_linux_mmc_mmc.h"
+    },
+    {
+      "upstream_path": "drivers/mmc/core/host.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/mmc/core/host.c",
+      "sha256": "36E491D75180CF1757A798DC19CC37B8B80402D46109F74AE68100C0DA219338",
+      "size": 13048,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_mmc_core_host.c"
+    },
+    {
+      "upstream_path": "drivers/pinctrl/sprd/pinctrl-sprd.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/pinctrl/sprd/pinctrl-sprd.c",
+      "sha256": "DA935059781CF343538A1A0B589F207741E9718C6C3CEF03DF5E5D6378E71B9B",
+      "size": 27559,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_pinctrl_sprd_pinctrl-sprd.c"
+    },
+    {
+      "upstream_path": "drivers/pinctrl/sprd/pinctrl-sprd.h",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/pinctrl/sprd/pinctrl-sprd.h",
+      "sha256": "04127F477A0FAEFB5BF0001181AC218FD4E592B4EBF2B2B81B95AEEC366AB399",
+      "size": 1899,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_pinctrl_sprd_pinctrl-sprd.h"
+    },
+    {
+      "upstream_path": "drivers/pinctrl/sprd/pinctrl-sprd-sharkl5Pro.c",
+      "url": "https://raw.githubusercontent.com/MotorolaMobilityLLC/kernel-sprd/261390cdfff66efef9082bd70c1af0abd21d77f2/drivers/pinctrl/sprd/pinctrl-sprd-sharkl5Pro.c",
+      "sha256": "922132E0E2FA2410ABA8F0D1B0BAD5B355567EAEA2380017FFF52E2ABE8A086F",
+      "size": 44626,
+      "local_path": "C:\\Users\\Angelo\\Documents\\Codex\\2026-09-08\\ana\\outputs\\microsd_v1_20261002\\PRIMARY_SOURCES\\drivers_pinctrl_sprd_pinctrl-sprd-sharkl5Pro.c"
+    }
+  ],
+  "kernel_sha256": "DD836BA33DC0FE4EAE9503F3A5E3A826924226DAAA592670BD4B5DB48F40F443",
+  "saved_kernel_config": [
+    "CONFIG_EFI_PARTITION=y",
+    "# CONFIG_KEXEC is not set",
+    "# CONFIG_EFI is not set",
+    "CONFIG_MMC=y",
+    "CONFIG_MMC_BLOCK=y",
+    "CONFIG_MMC_BLOCK_MINORS=8",
+    "# CONFIG_MMC_TEST is not set",
+    "# CONFIG_MMC_EMBEDDED_SDIO is not set",
+    "# CONFIG_MMC_PARANOID_SD_INIT is not set",
+    "CONFIG_MMC_CRYPTO=y",
+    "# CONFIG_MMC_DEBUG is not set",
+    "# CONFIG_MMC_ARMMMCI is not set",
+    "# CONFIG_MMC_SPRD_SDHCR10 is not set",
+    "# CONFIG_MMC_SDHCI is not set",
+    "# CONFIG_MMC_SPI is not set",
+    "CONFIG_MMC_SPRD_SDHCR11=y",
+    "# CONFIG_MMC_DW is not set",
+    "# CONFIG_MMC_VUB300 is not set",
+    "# CONFIG_MMC_USHC is not set",
+    "# CONFIG_MMC_USDHI6ROL0 is not set",
+    "# CONFIG_MMC_MTK is not set",
+    "# CONFIG_MMC35240 is not set"
+  ],
+  "device_io": "NONE"
+}

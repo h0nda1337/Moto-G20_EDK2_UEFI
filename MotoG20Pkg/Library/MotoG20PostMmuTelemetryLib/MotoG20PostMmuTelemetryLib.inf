@@ -1,0 +1,17 @@
+[Defines]
+  INF_VERSION                    = 0x00010005
+  BASE_NAME                      = MotoG20PostMmuTelemetryLib
+  FILE_GUID                      = 3e4e5161-a3ba-44db-90e6-8b446b555d52
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 1.0
+  LIBRARY_CLASS                  = MotoG20PostMmuTelemetryLib
+
+[Sources]
+  MotoG20PostMmuTelemetryLib.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  MotoG20PreOsTelemetryLib

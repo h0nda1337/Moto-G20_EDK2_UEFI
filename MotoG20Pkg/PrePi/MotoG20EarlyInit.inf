@@ -1,0 +1,24 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                      = MotoG20EarlyInit
+  FILE_GUID                      = F23E4591-1E5D-45F5-970D-7125C882B420
+  MODULE_TYPE                    = BASE
+  VERSION_STRING                 = 0.2
+
+[Sources]
+  EntryPoint.S
+  MotoG20Mmu3EnableStub.S
+  MotoG20EarlyInit.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  HobLib
+  ArmLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  MotoG20TranslationTableLib
+  PrePiHobListPointerLib

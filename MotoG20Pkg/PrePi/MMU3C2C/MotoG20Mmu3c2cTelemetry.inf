@@ -1,0 +1,34 @@
+[Defines]
+  INF_VERSION                    = 0x0001001B
+  BASE_NAME                     = MotoG20Mmu3c2cTelemetry
+  FILE_GUID                     = E142529A-3B33-4C9F-93D8-99114A25C2C1
+  MODULE_TYPE                   = BASE
+  VERSION_STRING                = 0.1
+
+[Sources]
+  ../MMU3B1/EntryPoint.S
+  ../MotoG20Mmu3EnableStub.S
+  ../MMU3B1/LocalEl2Vectors.S
+  ../MMU3B1/MotoG20Mmu3c1Exception.S
+  ../MMU3B1/Mmu3b1Probe.c
+  ../MotoG20EarlyInit.c
+  MotoG20Mmu3c2cTelemetry.c
+
+[Packages]
+  MdePkg/MdePkg.dec
+  EmbeddedPkg/EmbeddedPkg.dec
+  MotoG20Pkg/MotoG20Pkg.dec
+
+[LibraryClasses]
+  HobLib
+  ArmLib
+  BaseMemoryLib
+  MemoryAllocationLib
+  MotoG20TranslationTableLib
+  MotoG20PreOsTelemetryLib
+  PrePiHobListPointerLib
+
+[BuildOptions]
+  DEBUG_GCCNOLTO_AARCH64_CC_FLAGS = -fno-stack-protector
+  DEBUG_GCCNOLTO_AARCH64_PP_FLAGS = -DMOTO_G20_MMU3C2C_TELEMETRY=1
+  DEBUG_GCCNOLTO_AARCH64_DLINK_FLAGS = -Wl,-T,$(WORKSPACE)/MotoG20Pkg/PrePi/MMU3C2C/MotoG20Mmu3c2c.lds
