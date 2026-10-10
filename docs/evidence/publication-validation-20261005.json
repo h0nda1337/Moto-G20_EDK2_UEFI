@@ -1,0 +1,73 @@
+{
+  "date": "2026-10-05",
+  "scope": "Public source snapshot; physical firmware work paused",
+  "edk2_commit": "b03a21a63e3bd001f52c527e5a57feddb53a690b",
+  "toolchain": "aarch64-linux-gnu-gcc (Debian 14.2.0-19) 14.2.0",
+  "python": "Python 3.13.5",
+  "edk2_base_tools": "301 tests passed while building the clean dependency copy",
+  "build": {
+    "exit_code": 0,
+    "modules": [
+      {
+        "name": "BdsDxe.efi",
+        "sha256": "B8E49DFAEEC276A3CCB63C98364FBBC94C2216DE1AF815B6133E0B06428B07D8",
+        "size": 176128
+      },
+      {
+        "name": "DiskIoDxe.efi",
+        "sha256": "3926C6EB19ECE9592918BA808292A3B0B69201C1E51C06C1579EEDA8E354C0D0",
+        "size": 36864
+      },
+      {
+        "name": "Fat.efi",
+        "sha256": "B2A33D782F466440B4AF6BA6375F27A6B41FA382512AB7A4CB006046DEED72A8",
+        "size": 77824
+      },
+      {
+        "name": "MotoG20SdDxe.efi",
+        "sha256": "1F98C08E14C9D13BE5F5AA20D84C04BE56B8EC7BD8EA457B07EEF1C9B59D1770",
+        "size": 24576
+      },
+      {
+        "name": "MotoG20SdPlatformDxe.efi",
+        "sha256": "7E39D90413AE593853655A21FB4EFA1E37E07B15955095CF4EBE9ABE4D4880AA",
+        "size": 28672
+      },
+      {
+        "name": "PartitionDxe.efi",
+        "sha256": "1313C94141BC7B44B23D9CC907A31A8B7C7155C2DE6FF1CE7D74728AA6509E94",
+        "size": 53248
+      }
+    ]
+  },
+  "sd_host_tests": {
+    "core": 35,
+    "platform_mmio_model": 25,
+    "filesystem_probe_mock": 31
+  },
+  "memory_host_tests": {
+    "dtb_fixtures": 40,
+    "mutated_dtb_parses": 3000
+  },
+  "cpu_host_tests": "Passed; unsafe preconditions, field preservation, null arguments",
+  "packaging": {
+    "status": "PASS_OFFLINE_STRUCTURE_ONLY",
+    "image_sha256": "B8AAD4785740A6B0B73DEFF7107D40C227B7233AF661F83E6A125CD8E2537987",
+    "fv_sha256": "FA9F3F9C129D064CC92E40516B6D8997C13229903C6C851D2A240D8353BB8BFB",
+    "ffs_count": 28,
+    "baseline_image_sha256": "B158F348BAF58A12660EDF15FA5B6CAD7C41312BC3E32C07AC68509070E9E1F4"
+  },
+  "rebuilt_image_physical_result": "NOT_TESTED",
+  "original_tested_image_sha256": "B94E2C12D466AEE3BAC25E11AF853399EDA5132DCD36346A08ACE3C7A6BB37CB",
+  "winpe": "NOT_STARTED",
+  "secret_scan": {
+    "patterns": [
+      "github_token",
+      "openai_token",
+      "aws_access_key",
+      "private_key"
+    ],
+    "files": 399,
+    "findings": 0
+  }
+}

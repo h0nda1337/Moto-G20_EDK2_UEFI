@@ -13,12 +13,17 @@
   MotoG20SdDiagnostic.h
   sdhci_ro.c
   sdhci_ro.h
+  sd_dma_buffer.c
+  sd_dma_buffer.h
 
 [Packages]
   MdePkg/MdePkg.dec
+  ArmPkg/ArmPkg.dec
 
 [LibraryClasses]
   BaseMemoryLib
+  ArmLib
+  CacheMaintenanceLib
   UefiBootServicesTableLib
   UefiDriverEntryPoint
 

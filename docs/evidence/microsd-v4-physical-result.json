@@ -1,0 +1,37 @@
+{
+  "date": "2026-10-08",
+  "status": "V4_PHYSICAL_LBA0_REJECTED_CMD_REGISTER_READBACK",
+  "candidate_sha256": "5B09AEAAE1168D20478123A5C000596701C6A6BDA825B93BE7FF6A7D157B2ADA",
+  "photo_name": "IMG_1396.jpeg",
+  "photo_sha256": "0B611C0A7E474C80F34BE5409B2157683558F9369BDA501EDD4B92F84254BEC3",
+  "observation_source": "User-supplied photo, visually transcribed; original retained locally",
+  "transcription": {
+    "platform": "stage=11 map=Success prepare=Success ready=1",
+    "version": "00040000",
+    "capabilities": "1E6D0080",
+    "capacity_blocks": 60456960,
+    "block_io": "stage=3 status=Success published=1",
+    "initial_command": "cmd=13 irq=00000001 response=00000900 commands=23 blocks=0",
+    "dma_allocation": "Success address=87200200",
+    "raw_read": "SDRAW: LBA=0 read=Device Error.",
+    "setup": "version=00040000 block=00000200 count-reg=00 count=1 mode=0011",
+    "dma": "tries=1 complete=0 guards=1 fault=1",
+    "registers": "valid=03FF phase=4 IRQ=00000000 IE=037F000B PRESENT=01F00000",
+    "controls": "HC1=00000000 HC2=1000 CMD=113A0013 R1=00000900",
+    "dma_registers": "count=1 DMA=00000000:87200200",
+    "filesystem": "exact sector proof failed; filesystem test not run"
+  },
+  "confirmed": [
+    "Card identification and BlockIo publication",
+    "DMA page allocation",
+    "LBA0 read returned Device Error; no block delivered",
+    "Guard bytes intact at abort inspection"
+  ],
+  "interpretation": "Programmed CMD17 word is 113A0011; register readback is 113A0013 (bit1 added). The current exact readback comparison rejects that value before waiting for DMA completion. This observation does not establish DMA hardware failure or successful data delivery.",
+  "next": "Investigate native command-register bit1 readback semantics and adjust verification only with evidence; repeat exact sector proof using a new candidate.",
+  "physical_sector_read_verified": false,
+  "filesystem_verified": false,
+  "windows_started": false,
+  "candidate_consumed_do_not_repeat": true,
+  "android_return_after_v4": "NOT_CHECKED_DURING_PUBLICATION"
+}

@@ -76,19 +76,26 @@ StorageImageMatches (CONST EFI_DEVICE_PATH_PROTOCOL *Path, CONST EFI_GUID *File)
     Last = Path;
     Path = NextDevicePathNode (Path);
   }
-  if (Last == NULL || DevicePathType (Last) != MEDIA_DEVICE_PATH ||
+  if (DevicePathNodeLength (Path) != sizeof (*Path) || Last == NULL || DevicePathType (Last) != MEDIA_DEVICE_PATH ||
       DevicePathSubType (Last) != MEDIA_PIWG_FW_FILE_DP ||
       DevicePathNodeLength (Last) != sizeof (MEDIA_FW_VOL_FILEPATH_DEVICE_PATH)) return FALSE;
   FvFile = (CONST MEDIA_FW_VOL_FILEPATH_DEVICE_PATH *)Last;
   return CompareMem (&FvFile->FvFileName, File, sizeof (EFI_GUID)) == 0;
 }
 
-STATIC BOOLEAN
-StorageHasProtocol (EFI_HANDLE Handle, EFI_GUID *Guid)
+STATIC EFI_STATUS
+StorageHasProtocol (EFI_HANDLE Handle, EFI_GUID *Guid, BOOLEAN *Present)
 {
   VOID *Interface = NULL;
   EFI_STATUS Status = gBS->HandleProtocol (Handle, Guid, &Interface);
-  return !EFI_ERROR (Status) && Interface != NULL;
+  *Present = FALSE;
+  if (Status == EFI_UNSUPPORTED || Status == EFI_NOT_FOUND) return EFI_SUCCESS;
+  if (EFI_ERROR (Status) || Interface == NULL) {
+    Print (L"SDCHAIN: optional protocol=%g query=%r null=%u\r\n", Guid, Status, (UINT32)(Interface == NULL));
+    return EFI_ERROR (Status) ? Status : EFI_DEVICE_ERROR;
+  }
+  *Present = TRUE;
+  return EFI_SUCCESS;
 }
 
 STATIC EFI_STATUS
@@ -111,7 +118,11 @@ StorageDrivers (STORAGE_DRIVER *Drivers)
   for (Index = 0; Index < Count; ++Index) {
     Loaded = NULL;
     Status = gBS->HandleProtocol (Handles[Index], &gEfiLoadedImageProtocolGuid, (VOID **)&Loaded);
-    if (EFI_ERROR (Status) || Loaded == NULL) continue;
+    if (EFI_ERROR (Status) || Loaded == NULL) {
+      Print (L"SDCHAIN: LoadedImage[%Lu] query=%r null=%u\r\n", (UINT64)Index, Status, (UINT32)(Loaded == NULL));
+      FreePool (Handles);
+      return EFI_ERROR (Status) ? Status : EFI_DEVICE_ERROR;
+    }
     for (Driver = 0; Driver < 3; ++Driver) {
       if (StorageImageMatches (Loaded->FilePath, &Drivers[Driver].File)) {
         Drivers[Driver].Images++;
@@ -131,7 +142,11 @@ StorageDrivers (STORAGE_DRIVER *Drivers)
   for (Index = 0; Index < Count; ++Index) {
     Binding = NULL;
     Status = gBS->HandleProtocol (Handles[Index], &gEfiDriverBindingProtocolGuid, (VOID **)&Binding);
-    if (EFI_ERROR (Status) || Binding == NULL) continue;
+    if (EFI_ERROR (Status) || Binding == NULL) {
+      Print (L"SDCHAIN: DriverBinding[%Lu] query=%r null=%u\r\n", (UINT64)Index, Status, (UINT32)(Binding == NULL));
+      FreePool (Handles);
+      return EFI_ERROR (Status) ? Status : EFI_DEVICE_ERROR;
+    }
     for (Driver = 0; Driver < 3; ++Driver) {
       if (Drivers[Driver].Images == 1 && Binding->ImageHandle == Drivers[Driver].Image &&
           Binding->DriverBindingHandle == Handles[Index]) Drivers[Driver].Bindings++;
@@ -154,19 +169,19 @@ StorageDrivers (STORAGE_DRIVER *Drivers)
  * The returned child list contains only validated paths with partition media. */
 STATIC EFI_STATUS
 StorageInventory (CONST CHAR16 *Phase, EFI_HANDLE *Root, EFI_HANDLE *Children,
-                  UINTN *ChildCount, UINTN *FileSystems)
+                  UINTN *ChildCount, UINTN *FileSystems, UINT32 *RootMediaId)
 {
   EFI_STATUS Status;
   EFI_HANDLE *Handles;
   EFI_BLOCK_IO_PROTOCOL *Block;
   EFI_DEVICE_PATH_PROTOCOL *Path;
-  UINTN Count, Index, Kind, Roots, Seen;
+  UINTN Count, Index, Kind, Roots;
   BOOLEAN Disk, Fs;
   *Root = NULL;
   *ChildCount = 0;
   *FileSystems = 0;
   Roots = 0;
-  Seen = 0;
+  *RootMediaId = 0;
   Handles = NULL;
   Count = 0;
   Status = gBS->LocateHandleBuffer (ByProtocol, &gEfiBlockIoProtocolGuid, NULL, &Count, &Handles);
@@ -178,25 +193,48 @@ StorageInventory (CONST CHAR16 *Phase, EFI_HANDLE *Root, EFI_HANDLE *Children,
   for (Index = 0; Index < Count; ++Index) {
     Path = NULL;
     Status = gBS->HandleProtocol (Handles[Index], &gEfiDevicePathProtocolGuid, (VOID **)&Path);
-    if (EFI_ERROR (Status)) continue;
+    if (Status == EFI_UNSUPPORTED || Status == EFI_NOT_FOUND) continue;
+    if (EFI_ERROR (Status) || Path == NULL) {
+      Print (L"SDCHAIN: %s DevicePath[%Lu] query=%r null=%u\r\n", Phase, (UINT64)Index, Status, (UINT32)(Path == NULL));
+      FreePool (Handles);
+      return EFI_ERROR (Status) ? Status : EFI_DEVICE_ERROR;
+    }
     Kind = StoragePathKind (Path);
     if (Kind == 0) continue;
     Block = NULL;
     Status = gBS->HandleProtocol (Handles[Index], &gEfiBlockIoProtocolGuid, (VOID **)&Block);
-    if (EFI_ERROR (Status) || Block == NULL || Block->Media == NULL) continue;
+    if (EFI_ERROR (Status) || Block == NULL || Block->Media == NULL) {
+      Print (L"SDCHAIN: %s BlockIo[%Lu] query=%r null=%u\r\n", Phase, (UINT64)Index, Status,
+             (UINT32)(Block == NULL || Block->Media == NULL));
+      FreePool (Handles);
+      return EFI_ERROR (Status) ? Status : EFI_DEVICE_ERROR;
+    }
     if ((Kind == 1 && Block->Media->LogicalPartition) || (Kind == 2 && !Block->Media->LogicalPartition)) continue;
-    if (++Seen > STORAGE_MAX_CHILDREN + 1) {
+    if (Kind == 2 && !Block->Media->MediaPresent) continue;
+    if (Block->Media->BlockSize == 0) {
+      Print (L"SDCHAIN: %s BlockIo[%Lu] invalid block size=0\r\n", Phase, (UINT64)Index);
+      FreePool (Handles);
+      return EFI_DEVICE_ERROR;
+    }
+    if (Kind == 2 && *ChildCount >= STORAGE_MAX_CHILDREN) {
       FreePool (Handles);
       return EFI_BAD_BUFFER_SIZE;
     }
-    Disk = StorageHasProtocol (Handles[Index], &gEfiDiskIoProtocolGuid);
-    Fs = StorageHasProtocol (Handles[Index], &gEfiSimpleFileSystemProtocolGuid);
+    Status = StorageHasProtocol (Handles[Index], &gEfiDiskIoProtocolGuid, &Disk);
+    if (!EFI_ERROR (Status)) {
+      Status = StorageHasProtocol (Handles[Index], &gEfiSimpleFileSystemProtocolGuid, &Fs);
+    }
+    if (EFI_ERROR (Status)) {
+      FreePool (Handles);
+      return Status;
+    }
     Print (L"SDCHAIN: %s kind=%u media=%u id=%u block=%u last=%Lu DiskIo=%u SFS=%u\r\n",
            Phase, (UINT32)Kind, (UINT32)Block->Media->MediaPresent, Block->Media->MediaId,
            Block->Media->BlockSize, (UINT64)Block->Media->LastBlock, (UINT32)Disk, (UINT32)Fs);
     if (Kind == 1) {
       Roots++;
       *Root = Handles[Index];
+      *RootMediaId = Block->Media->MediaId;
     } else {
       Children[*ChildCount] = Handles[Index];
       (*ChildCount)++;
@@ -208,6 +246,13 @@ StorageInventory (CONST CHAR16 *Phase, EFI_HANDLE *Root, EFI_HANDLE *Children,
     Print (L"SDCHAIN: physical SD roots=%Lu; connection skipped.\r\n", (UINT64)Roots);
     return Roots == 0 ? EFI_NOT_FOUND : EFI_UNSUPPORTED;
   }
+  Block = NULL;
+  Status = gBS->HandleProtocol (*Root, &gEfiBlockIoProtocolGuid, (VOID **)&Block);
+  if (EFI_ERROR (Status) || Block == NULL || Block->Media == NULL) {
+    return EFI_ERROR (Status) ? Status : EFI_DEVICE_ERROR;
+  }
+  if (!Block->Media->MediaPresent) return EFI_NO_MEDIA;
+  if (Block->Media->BlockSize == 0) return EFI_DEVICE_ERROR;
   return EFI_SUCCESS;
 }
 
@@ -222,6 +267,7 @@ MotoG20StorageConnect (VOID)
   EFI_STATUS Status, DriversStatus;
   EFI_HANDLE Root, AfterRoot, Children[STORAGE_MAX_CHILDREN], Priorities[4];
   UINTN ChildCount, FileSystems, Index;
+  UINT32 RootMediaId, AfterMediaId;
   VOID *Collation;
   if (mStorageAttempted) return EFI_ALREADY_STARTED;
   mStorageAttempted = TRUE;
@@ -229,7 +275,7 @@ MotoG20StorageConnect (VOID)
   Collation = NULL;
   Status = gBS->LocateProtocol (&gEfiUnicodeCollation2ProtocolGuid, NULL, &Collation);
   Print (L"SDCHAIN: UnicodeCollation2=%r present=%u\r\n", Status, (UINT32)(!EFI_ERROR (Status) && Collation != NULL));
-  Status = StorageInventory (L"before", &Root, Children, &ChildCount, &FileSystems);
+  Status = StorageInventory (L"before", &Root, Children, &ChildCount, &FileSystems, &RootMediaId);
   if (EFI_ERROR (Status)) return Status;
   if (EFI_ERROR (DriversStatus)) return DriversStatus;
   Priorities[0] = Drivers[0].Image;
@@ -240,18 +286,22 @@ MotoG20StorageConnect (VOID)
    * resident bindings. FALSE avoids recursively touching unrelated handles. */
   Status = gBS->ConnectController (Root, Priorities, NULL, FALSE);
   Print (L"SDCHAIN: physical ConnectController=%r (DiskIo/Partition/Fat priority)\r\n", Status);
-  Status = StorageInventory (L"after-root", &AfterRoot, Children, &ChildCount, &FileSystems);
+  /* NOT_FOUND also means all drivers are already attached in DXE Core. Other
+   * errors must not be overwritten by a later successful inventory. */
+  if (EFI_ERROR (Status) && Status != EFI_NOT_FOUND) return Status;
+  Status = StorageInventory (L"after-root", &AfterRoot, Children, &ChildCount, &FileSystems, &AfterMediaId);
   if (EFI_ERROR (Status)) return Status;
-  if (Root != AfterRoot) return EFI_MEDIA_CHANGED;
+  if (Root != AfterRoot || RootMediaId != AfterMediaId) return EFI_MEDIA_CHANGED;
   Priorities[1] = Drivers[2].Image;
   Priorities[2] = NULL;
   for (Index = 0; Index < ChildCount; ++Index) {
     Status = gBS->ConnectController (Children[Index], Priorities, NULL, FALSE);
     Print (L"SDCHAIN: partition %Lu ConnectController=%r (DiskIo/Fat priority)\r\n", (UINT64)Index + 1, Status);
+    if (EFI_ERROR (Status) && Status != EFI_NOT_FOUND) return Status;
   }
-  Status = StorageInventory (L"after-children", &AfterRoot, Children, &ChildCount, &FileSystems);
+  Status = StorageInventory (L"after-children", &AfterRoot, Children, &ChildCount, &FileSystems, &AfterMediaId);
   if (EFI_ERROR (Status)) return Status;
-  if (Root != AfterRoot) return EFI_MEDIA_CHANGED;
+  if (Root != AfterRoot || RootMediaId != AfterMediaId) return EFI_MEDIA_CHANGED;
   Print (L"SDCHAIN: SD partitions=%Lu filesystems=%Lu; file read not established.\r\n", (UINT64)ChildCount, (UINT64)FileSystems);
   return FileSystems > 0 ? EFI_SUCCESS : EFI_NOT_FOUND;
 }

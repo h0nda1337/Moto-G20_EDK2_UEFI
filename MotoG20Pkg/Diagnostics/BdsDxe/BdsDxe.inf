@@ -26,6 +26,11 @@
 #
 
 [Sources]
+  MotoG20RawSdProbe.c
+  MotoG20RawSdProbe.h
+  MotoG20SdSectorReferences.h
+  MotoG20StorageConnect.c
+  MotoG20StorageConnect.h
   MotoG20SdPlatformDiagnostic.h
   sd_platform_engine.h
   sdhci_ro.h
@@ -84,6 +89,11 @@
   gEfiEventReadyToBootGuid                      ## CONSUMES           ## Event
 
 [Protocols]
+  gEfiBlockIoProtocolGuid
+  gEfiDiskIoProtocolGuid
+  gEfiLoadedImageProtocolGuid
+  gEfiDriverBindingProtocolGuid
+  gEfiUnicodeCollation2ProtocolGuid
   gEfiSimpleFileSystemProtocolGuid
   gEfiDevicePathProtocolGuid
   gEfiBdsArchProtocolGuid                       ## PRODUCES

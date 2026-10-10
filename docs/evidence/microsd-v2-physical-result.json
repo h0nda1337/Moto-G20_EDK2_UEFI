@@ -1,0 +1,33 @@
+{
+  "status": "V2_PHYSICAL_CMD17_LBA0_DEVICE_ERROR",
+  "candidate_sha256": "4BAA295A378A12D10C8B19379DA318DB850415877304AAB708A7EA4DD5BA0265",
+  "photo_sha256": "F05FEA71BE704192266BB7E4253EB951F110FF9A1FABFD74EFEC785D627D3722",
+  "observation_source": "Human-supplied IMG_1392.jpg, transcribed and visually reviewed",
+  "transcription": {
+    "version": "00040000",
+    "capabilities": "1E6D0080",
+    "capacity_blocks": 60456960,
+    "raw": "SDRAW: LBA=0 read=Device Error.",
+    "diskio_images_bindings": [
+      1,
+      1
+    ],
+    "partition_images_bindings": [
+      1,
+      1
+    ],
+    "fat_images_bindings": [
+      1,
+      1
+    ],
+    "unicode_collation2": "Success present=1",
+    "after_raw_media_present": false,
+    "after_raw_media_id": 2,
+    "after_connect": "stage=4 status=Device Error cmd=17 irq=00000002 blocks=0",
+    "filesystem": "Not Found",
+    "windows_started": false
+  },
+  "interpretation": "Card identification succeeded. First raw CMD17 fails before any block is delivered. No Media is the software fault latch after that failure, not proof of physical removal.",
+  "hypothesis_not_yet_physically_confirmed": "Spec 4.10 requires block count at offset 0x00 per Motorola driver; V2 always programmed legacy count at 0x06.",
+  "candidate_consumed_do_not_repeat": true
+}

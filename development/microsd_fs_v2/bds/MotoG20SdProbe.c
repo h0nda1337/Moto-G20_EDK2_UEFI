@@ -11,7 +11,6 @@
 #include <Library/BaseMemoryLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/UefiBootManagerLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
 
@@ -210,8 +209,8 @@ MotoG20SdProbe (
   }
 
   MotoG20RawSdProbe ();
-  MotoG20StorageConnect ();
-  EfiBootManagerConnectAll ();
+  Status = MotoG20StorageConnect ();
+  Print (L"MICROSD: targeted storage connect=%r; file read still unverified.\r\n", Status);
   Print (L"MICROSD: after connect stage=%u status=%r cmd=%u irq=%08x blocks=%u\r\n",
          Diagnostic->Stage, Diagnostic->Status, Diagnostic->LastCommand,
          Diagnostic->LastIrq, Diagnostic->BlocksRead);
@@ -220,7 +219,13 @@ MotoG20SdProbe (
   Status = gBS->LocateHandleBuffer (ByProtocol, &gEfiSimpleFileSystemProtocolGuid,
                                   NULL, &HandleCount, &Handles);
   if (EFI_ERROR (Status)) {
+    if (Handles != NULL) FreePool (Handles);
     Print (L"MICROSD: no filesystem (%r); read test not run.\r\n", Status);
+    return;
+  }
+  if (Handles == NULL || HandleCount == 0 || HandleCount > 64) {
+    if (Handles != NULL) FreePool (Handles);
+    Print (L"MICROSD: invalid/bounded filesystem inventory; read test not run.\r\n");
     return;
   }
   MatchingVolumes = 0;

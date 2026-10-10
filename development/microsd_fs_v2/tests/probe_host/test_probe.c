@@ -22,8 +22,10 @@ struct fake_volume {
 };
 static struct fake_volume volumes[MAX_VOLUMES];
 static MOTO_G20_SD_DIAGNOSTIC diagnostic;
-static UINTN volume_count, connect_calls, locate_calls, pass_messages, free_calls;
-static EFI_STATUS diagnostic_status, locate_status;
+static UINTN volume_count, raw_calls, connect_calls, locate_calls, pass_messages, free_calls;
+static UINTN reported_count;
+static BOOLEAN null_handles, handles_on_error;
+static EFI_STATUS diagnostic_status, locate_status, storage_status;
 static unsigned cases;
 static EFI_HANDLE *allocated_handles;
 static const char marker[] = "MOTO G20 MICROSD READ TEST V1\r\n";
@@ -31,7 +33,12 @@ EFI_GUID gEfiSimpleFileSystemProtocolGuid = { 1, 2, 3, { 0 } };
 EFI_GUID gEfiDevicePathProtocolGuid = { 4, 5, 6, { 0 } };
 
 INTN CompareMem (CONST VOID *a, CONST VOID *b, UINTN size) { return memcmp(a, b, size); }
-VOID EfiBootManagerConnectAll (VOID) { connect_calls++; }
+VOID MotoG20RawSdProbe (VOID) { assert(connect_calls == 0); raw_calls++; }
+EFI_STATUS MotoG20StorageConnect (VOID) {
+  assert(raw_calls == 1);
+  connect_calls++;
+  return storage_status;
+}
 VOID FreePool (VOID *buffer) {
   assert(buffer != NULL && buffer == allocated_handles);
   free_calls++;
@@ -138,14 +145,15 @@ static EFI_STATUS locate_handles(EFI_LOCATE_SEARCH_TYPE type, EFI_GUID *guid, VO
   locate_calls++;
   assert(type == ByProtocol && key == NULL);
   assert(memcmp(guid, &gEfiSimpleFileSystemProtocolGuid, sizeof(*guid)) == 0);
-  if (EFI_ERROR(locate_status)) return locate_status;
+  if (EFI_ERROR(locate_status) && !handles_on_error) return locate_status;
+  if (null_handles) { *count = reported_count; *handles = NULL; return locate_status; }
   assert(volume_count > 0 && allocated_handles == NULL);
   allocated_handles = malloc(volume_count * sizeof(*allocated_handles));
   assert(allocated_handles != NULL);
   for (i = 0; i < volume_count; i++) allocated_handles[i] = &volumes[i];
   *handles = allocated_handles;
-  *count = volume_count;
-  return EFI_SUCCESS;
+  *count = reported_count == (UINTN)-1 ? volume_count : reported_count;
+  return locate_status;
 }
 static EFI_STATUS handle_protocol(EFI_HANDLE handle, EFI_GUID *guid, VOID **interface) {
   struct fake_volume *v = handle;
@@ -186,8 +194,10 @@ static void reset(void) {
   diagnostic.Revision = 1;
   diagnostic.Stage = 3;
   diagnostic.Published = TRUE;
-  diagnostic_status = locate_status = EFI_SUCCESS;
-  connect_calls = locate_calls = pass_messages = free_calls = 0;
+  diagnostic_status = locate_status = storage_status = EFI_SUCCESS;
+  raw_calls = connect_calls = locate_calls = pass_messages = free_calls = 0;
+  reported_count = (UINTN)-1;
+  null_handles = handles_on_error = FALSE;
   volume_count = 1;
   mProbed = FALSE;
   for (i = 0; i < MAX_VOLUMES; i++) {
@@ -204,6 +214,7 @@ static void reset(void) {
 }
 static void finish(const char *name, BOOLEAN expected_pass) {
   assert(pass_messages == (expected_pass ? 1u : 0u));
+  assert(raw_calls == connect_calls);
   assert(allocated_handles == NULL);
   cases++;
   printf("HOST_OK %02u %s\n", cases, name);
@@ -262,6 +273,16 @@ int main(void) {
   assert(connect_calls == 0 && locate_calls == 0); finish("missing diagnostic neither connects nor opens", FALSE);
   reset(); locate_status = EFI_NOT_FOUND; MotoG20SdProbe(); no_open();
   assert(connect_calls == 1 && free_calls == 0); finish("missing filesystem rejects without access", FALSE);
+  reset(); locate_status = EFI_DEVICE_ERROR; handles_on_error = TRUE; MotoG20SdProbe(); no_open();
+  assert(free_calls == 1); finish("allocated handles freed on inventory error", FALSE);
+  reset(); reported_count = 0; MotoG20SdProbe(); no_open();
+  assert(free_calls == 1); finish("empty successful inventory rejected and freed", FALSE);
+  reset(); reported_count = 65; MotoG20SdProbe(); no_open();
+  assert(free_calls == 1); finish("over-limit inventory rejected before dereference", FALSE);
+  reset(); reported_count = 1; null_handles = TRUE; MotoG20SdProbe(); no_open();
+  assert(free_calls == 0); finish("successful inventory with null array rejected", FALSE);
+  reset(); storage_status = EFI_NOT_FOUND; MotoG20SdProbe();
+  finish("existing filesystem still checked after unsuccessful connect", TRUE);
   reset(); volume_count = 2; make_path(v, TRUE, 0, TRUE); MotoG20SdProbe();
   assert(v->root_opens == 0 && volumes[1].root_opens == 1); finish("foreign identical file skipped before real SD volume", TRUE);
   reset(); v->fs_status = EFI_DEVICE_ERROR; MotoG20SdProbe(); no_open(); finish("filesystem protocol failure never opens", FALSE);

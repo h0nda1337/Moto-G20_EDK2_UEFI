@@ -1,10 +1,11 @@
 /* SPDX-License-Identifier: BSD-2-Clause-Patent
- * Read-only SD protocol over SDHCI PIO. Register definitions cross-checked with
+ * Read-only SD protocol over SDHCI PIO or native Unisoc SDMA. Definitions checked with
  * Motorola kernel-sprd 261390cdfff66efef9082bd70c1af0abd21d77f2, sprd-sdhcr11.h.
  * Platform setup is intentionally separate and mandatory.
  */
 #include "sdhci_ro.h"
 
+#define REG_BLOCK_COUNT32 0x00u
 #define REG_BLOCK       0x04u
 #define REG_ARG         0x08u
 #define REG_COMMAND     0x0cu
@@ -14,11 +15,18 @@
 #define REG_IRQ         0x30u
 #define REG_IRQ_ENABLE  0x34u
 #define REG_IRQ_SIGNAL  0x38u
+#define REG_VERSION_PAIR 0xfcu
+#define REG_HOST_CONTROL1 0x28u
+#define REG_HOST_CONTROL2_PAIR 0x3cu
+#define REG_DMA_LOW 0x58u
+#define REG_DMA_HIGH 0x5cu
 #define IRQ_COMMAND    0x00000001u
 #define IRQ_TRANSFER   0x00000002u
 #define IRQ_READ       0x00000020u
+#define IRQ_DMA_END    0x00000008u
 #define IRQ_ERRORS     0x03ff8000u
 #define IRQ_USED       (IRQ_COMMAND | IRQ_TRANSFER | IRQ_READ | IRQ_ERRORS)
+#define IRQ_DMA_USED   (IRQ_COMMAND | IRQ_TRANSFER | IRQ_DMA_END | IRQ_ERRORS)
 #define R1_ERRORS      0xfff9a008u
 #define POLL_US        100u
 #define COMMAND_US     100000u
@@ -39,10 +47,34 @@ static enum sdro_status available(struct sdro_host *h) {
   return present == 1 ? SDRO_OK : SDRO_NO_CARD;
 }
 
+static void snapshot(struct sdro_host *h, sd_u32 phase) {
+  static const sd_u32 offsets[10] = { REG_IRQ, REG_IRQ_ENABLE, REG_PRESENT,
+    REG_HOST_CONTROL1, REG_HOST_CONTROL2_PAIR, REG_COMMAND, REG_RESPONSE,
+    REG_BLOCK_COUNT32, REG_DMA_LOW, REG_DMA_HIGH };
+  sd_u32 *fields[10], i;
+  if (!h->dma_enabled || h->last_command != 17) return;
+  h->snapshot_valid = 0;
+  h->snapshot_phase = phase;
+  fields[0]=&h->snapshot_irq; fields[1]=&h->snapshot_irq_enable;
+  fields[2]=&h->snapshot_present; fields[3]=&h->snapshot_host_control1;
+  fields[4]=&h->snapshot_host_control2; fields[5]=&h->snapshot_command;
+  fields[6]=&h->snapshot_response; fields[7]=&h->snapshot_count;
+  fields[8]=&h->snapshot_dma_low; fields[9]=&h->snapshot_dma_high;
+  for (i=0; i<10; ++i) {
+    *fields[i] = 0;
+    if (available(h) != SDRO_OK) continue;
+    *fields[i] = h->io.read32(h->io.context, offsets[i]);
+    if (i == 4) *fields[i] >>= 16;
+    h->snapshot_valid |= 1u << i;
+  }
+}
+
 static enum sdro_status fail(struct sdro_host *h, enum sdro_status s) {
+  snapshot(h, SDRO_SNAPSHOT_FAILURE);
   h->last_status = s;
   h->card.selected = 0;
   h->faulted = 1;
+  h->transfer_active = 0;
   /* No cleanup MMIO: clocks/power may already be inaccessible. A fresh session
    * requires the platform to reset the host, not retries on stale state. */
   return s;
@@ -69,6 +101,7 @@ static enum sdro_status wait_irq(struct sdro_host *h, sd_u32 wanted, sd_u32 us) 
     irq = h->io.read32(h->io.context, REG_IRQ);
     h->last_irq = irq;
     if (irq & IRQ_ERRORS) return SDRO_IO_ERROR;
+    if (h->dma_enabled && h->transfer_active && (irq & IRQ_DMA_END)) return SDRO_IO_ERROR;
     /* A completed read with no buffer-ready indication is not successful data. */
     if ((wanted == IRQ_READ) && (irq & IRQ_TRANSFER) && !(irq & IRQ_READ)) return SDRO_IO_ERROR;
     if ((irq & wanted) == wanted) return SDRO_OK;
@@ -87,7 +120,9 @@ static enum sdro_status issue(struct sdro_host *h, sd_u8 cmd, sd_u32 arg, sd_u8 
     case 3: case 8: case 13: case 16: case 55: response_type = 0x1a; break;
     case 7: response_type = 0x1b; mask = 3; break; /* R1b */
     case 41: response_type = 2; break; /* R3: no CRC */
-    case 17: response_type = 0x3a; transfer = 0x12; mask = 3; break;
+    /* Motorola passes if_mult for count-enable. CMD17 is one block: read,
+     * no multi-block/count enable or auto command; DMA is explicit opt-in. */
+    case 17: response_type = 0x3a; transfer = h->dma_enabled ? 0x11u : 0x10u; mask = 3; break;
     default: return SDRO_UNSUPPORTED;
   }
   s = available(h);
@@ -98,15 +133,63 @@ static enum sdro_status issue(struct sdro_host *h, sd_u8 cmd, sd_u32 arg, sd_u8 
   s = wait_present(h, mask, 0, COMMAND_US);
   if (s != SDRO_OK) return fail(h, s);
   h->io.write32(h->io.context, REG_IRQ_SIGNAL, 0); /* polling, never enable IRQ line */
-  h->io.write32(h->io.context, REG_IRQ_ENABLE, IRQ_USED);
-  h->io.write32(h->io.context, REG_IRQ, IRQ_USED); /* W1C, never read-modify-write */
-  if (cmd == 17) h->io.write32(h->io.context, REG_BLOCK, 0x00010200u);
+  word = (cmd == 17 && h->dma_enabled) ? IRQ_DMA_USED : IRQ_USED;
+  h->io.write32(h->io.context, REG_IRQ_ENABLE, word);
+  h->io.write32(h->io.context, REG_IRQ, word); /* W1C, never read-modify-write */
+  if (cmd == 17) {
+    sd_u32 version, block;
+    h->transfer_version = h->io.read32(h->io.context, REG_VERSION_PAIR);
+    version = (h->transfer_version >> 16) & 0xffu;
+    h->transfer_mode = transfer;
+    if (h->transfer_version == 0xffffffffu || version == 0xffu) return fail(h, SDRO_IO_ERROR);
+    if (h->dma_enabled && version < 3u) return fail(h, SDRO_UNSUPPORTED);
+    /* sprd-sdhcr11.c programs 32-bit count at 0x00 for spec >= 4.00
+     * (encoded >=3); 0x06 is the legacy 16-bit counter. Program it for
+     * EVERY command because hardware may consume it to zero. */
+    block = version >= 3u ? 0x00000200u : 0x00010200u;
+    h->transfer_count_offset = version >= 3u ? REG_BLOCK_COUNT32 : 6u;
+    h->io.write32(h->io.context, REG_BLOCK, block);
+    if (version >= 3u) h->io.write32(h->io.context, REG_BLOCK_COUNT32, 1u);
+    h->transfer_block = h->io.read32(h->io.context, REG_BLOCK);
+    h->transfer_count = version >= 3u ? h->io.read32(h->io.context, REG_BLOCK_COUNT32) :
+                                      h->transfer_block >> 16;
+    /* Capture BEFORE the command: a consumed counter is not a failed setup.
+     * Do not send CMD17 if the controller ignored size/count programming. */
+    if (h->transfer_block != block || h->transfer_count != 1u) return fail(h, SDRO_IO_ERROR);
+    if (h->dma_enabled) {
+      /* Motorola sprd_sdmd_mode: native SDMA address is 0x58/0x5c.
+       * Keep all unrelated HC1 bits, select SDMA (bits4:3=0). HC2 bit13
+       * controls 64-bit addressing: this owner only supplies 32-bit pages.
+       * Lower16 at0x3c is W1C auto-command error: write zero, never RMW it. */
+      word = h->io.read32(h->io.context, REG_HOST_CONTROL1) & ~0x18u;
+      h->io.write32(h->io.context, REG_HOST_CONTROL1, word);
+      if (h->io.read32(h->io.context, REG_HOST_CONTROL1) != word) return fail(h, SDRO_IO_ERROR);
+      word = h->io.read32(h->io.context, REG_HOST_CONTROL2_PAIR) & 0xdfff0000u;
+      h->io.write32(h->io.context, REG_HOST_CONTROL2_PAIR, word);
+      if ((h->io.read32(h->io.context, REG_HOST_CONTROL2_PAIR) & 0xffff0000u) != word)
+        return fail(h, SDRO_IO_ERROR);
+      h->io.write32(h->io.context, REG_DMA_HIGH, 0);
+      h->io.write32(h->io.context, REG_DMA_LOW, h->dma.address);
+      if (h->io.read32(h->io.context, REG_DMA_LOW) != h->dma.address ||
+          h->io.read32(h->io.context, REG_DMA_HIGH) != 0) return fail(h, SDRO_IO_ERROR);
+      if (h->dma.prepare(h->dma.context) != 1) return fail(h, SDRO_IO_ERROR);
+      s = available(h);
+      if (s != SDRO_OK) return fail(h, s);
+      snapshot(h, SDRO_SNAPSHOT_SETUP);
+    }
+  }
   h->io.write32(h->io.context, REG_ARG, arg);
   /* Atomic transfer+command avoids replaying old commands with 32-bit RMW. */
   h->io.write32(h->io.context, REG_COMMAND, ((sd_u32)cmd << 24) | (response_type << 16) | transfer);
   h->commands++;
+  s = available(h);
+  if (s != SDRO_OK) return fail(h, s);
+  if (cmd == 17 && h->dma_enabled &&
+      h->io.read32(h->io.context, REG_COMMAND) != (((sd_u32)cmd << 24) | (response_type << 16) | transfer))
+    return fail(h, SDRO_IO_ERROR);
   s = wait_irq(h, IRQ_COMMAND, COMMAND_US);
   if (s != SDRO_OK) return fail(h, s);
+  if (cmd == 17) snapshot(h, SDRO_SNAPSHOT_COMMAND);
   if (cmd != 0) {
     h->last_response = h->io.read32(h->io.context, REG_RESPONSE);
     if (cmd == 2 || cmd == 9) {
@@ -147,6 +230,29 @@ enum sdro_status sdro_init(struct sdro_host *h, const struct sdro_io *io, sd_u32
   h->voltage_ocr = ocr;
   h->initialized = 1;
   h->last_status = SDRO_NOT_READY;
+  return SDRO_OK;
+}
+
+enum sdro_status sdro_set_dma(struct sdro_host *h, const struct sdro_dma *dma) {
+  sd_u32 version, caps;
+  enum sdro_status s;
+  if (!h || !dma || !dma->prepare || !dma->complete || !dma->address ||
+      (dma->address & 511u) || (sd_u64)dma->address + 511u > 0xffffffffULL)
+    return SDRO_ARGUMENT;
+  if (!h->initialized || h->faulted || h->identifying || h->transfer_active ||
+      !h->card.selected) return SDRO_NOT_READY;
+  s = available(h);
+  if (s != SDRO_OK) return s;
+  version = h->io.read32(h->io.context, REG_VERSION_PAIR);
+  if (version == 0xffffffffu || ((version >> 16) & 255u) == 255u) return SDRO_IO_ERROR;
+  if (((version >> 16) & 255u) < 3u) return SDRO_UNSUPPORTED;
+  s = available(h);
+  if (s != SDRO_OK) return s;
+  caps = h->io.read32(h->io.context, 0x40u);
+  if (caps == 0xffffffffu) return SDRO_IO_ERROR;
+  if (!(caps & 0x00400000u)) return SDRO_UNSUPPORTED;
+  h->dma = *dma;
+  h->dma_enabled = 1;
   return SDRO_OK;
 }
 
@@ -237,12 +343,36 @@ enum sdro_status sdro_read_block(struct sdro_host *h, sd_u64 lba, sd_u8 *data, s
   sd_u32 i, value, arg;
   sd_u8 staged[512];
   if (!h || !data || length != 512) return SDRO_ARGUMENT;
-  if (!h->initialized || !h->card.selected || !h->clock_hz || h->clock_hz > 25000000u) return SDRO_NOT_READY;
+  if (!h->initialized || !h->card.selected || !h->clock_hz || h->clock_hz > 25000000u || h->transfer_active)
+    return SDRO_NOT_READY;
   if (lba >= h->card.blocks || lba > 0xffffffffULL) return SDRO_RANGE;
   if (!h->card.block_addressed && lba > 0x7fffffULL) return SDRO_RANGE;
   arg = (sd_u32)(h->card.block_addressed ? lba : lba * 512);
+  h->transfer_active = 1;
   s = issue(h, 17, arg, 0);
   if (s != SDRO_OK) return s;
+  if (h->dma_enabled) {
+    s = wait_irq(h, IRQ_TRANSFER, DATA_US);
+    if (s != SDRO_OK) return fail(h, s);
+    s = wait_present(h, 2u, 0, DATA_US);
+    if (s != SDRO_OK) return fail(h, s);
+    snapshot(h, SDRO_SNAPSHOT_TRANSFER);
+    /* Recheck errors immediately before exposing completion to the owner. */
+    s = available(h);
+    if (s != SDRO_OK) return fail(h, s);
+    value = h->io.read32(h->io.context, REG_IRQ);
+    h->last_irq = value;
+    if ((value & (IRQ_ERRORS | IRQ_DMA_END)) || !(value & IRQ_TRANSFER)) return fail(h, SDRO_IO_ERROR);
+    h->io.write32(h->io.context, REG_IRQ, IRQ_TRANSFER);
+    if (h->dma.complete(h->dma.context, staged) != 1) return fail(h, SDRO_IO_ERROR);
+    s = available(h);
+    if (s != SDRO_OK) return fail(h, s);
+    for (i = 0; i < 512; ++i) data[i] = staged[i];
+    h->blocks_read++;
+    h->last_status = SDRO_OK;
+    h->transfer_active = 0;
+    return SDRO_OK;
+  }
   s = wait_irq(h, IRQ_READ, DATA_US);
   if (s != SDRO_OK) return fail(h, s);
   /* PRESENT_STATE buffer-read-enable must agree with the ready interrupt. */
@@ -268,6 +398,7 @@ enum sdro_status sdro_read_block(struct sdro_host *h, sd_u64 lba, sd_u8 *data, s
   for (i = 0; i < 512; ++i) data[i] = staged[i];
   h->blocks_read++;
   h->last_status = SDRO_OK;
+  h->transfer_active = 0;
   return SDRO_OK;
 }
 

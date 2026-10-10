@@ -1,0 +1,38 @@
+## SPDX-License-Identifier: BSD-2-Clause-Patent
+[Defines]
+  INF_VERSION = 0x0001001B
+  BASE_NAME = MotoG20SdDxe
+  FILE_GUID = 9FDB62D3-FA35-4E77-9025-9291880F2C58
+  MODULE_TYPE = DXE_DRIVER
+  VERSION_STRING = 0.1
+  ENTRY_POINT = MotoG20SdEntry
+
+[Sources]
+  MotoG20SdDxe.c
+  MotoG20SdPlatform.h
+  MotoG20SdDiagnostic.h
+  sdhci_ro.c
+  sdhci_ro.h
+  sd_dma_buffer.c
+  sd_dma_buffer.h
+
+[Packages]
+  MdePkg/MdePkg.dec
+  ArmPkg/ArmPkg.dec
+
+[LibraryClasses]
+  BaseMemoryLib
+  ArmLib
+  CacheMaintenanceLib
+  UefiBootServicesTableLib
+  UefiDriverEntryPoint
+
+[Protocols]
+  gEfiBlockIoProtocolGuid
+  gEfiDevicePathProtocolGuid
+
+[BuildOptions]
+  GCC:*_*_AARCH64_CC_FLAGS = -DSDRO_EDK2
+
+[Depex]
+  TRUE

@@ -278,7 +278,7 @@ PlatformBootManagerAfterConsole (
   // MICROSD_DIAGNOSTIC_HOLD: run before StartImage(Shell), which normally
   // never returns and clears the console. This image proves SD reading only.
   Status = gBS->SetWatchdogTimer (0, 0, 0, NULL);
-  Print (L"\r\nMICROSD V1: hardware read test; watchdog=%r\r\n", Status);
+  Print (L"\r\nMICROSD V4: SDMA sector and filesystem test; watchdog=%r\r\n", Status);
   MotoG20SdProbe ();
   Print (L"\r\nMICROSD: test finished; capture this screen.\r\n");
   Print (L"Windows PE has NOT been started. Forced restart returns to Android.\r\n");

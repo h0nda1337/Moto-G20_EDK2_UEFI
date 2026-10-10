@@ -4,17 +4,22 @@
  */
 #include <Uefi.h>
 #include <Library/BaseMemoryLib.h>
+#include <Library/ArmLib.h>
+#include <Library/CacheMaintenanceLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Protocol/BlockIo.h>
 #include <Protocol/DevicePath.h>
 #include "MotoG20SdPlatform.h"
 #include "MotoG20SdDiagnostic.h"
+#include "sd_dma_buffer.h"
 
 STATIC EFI_GUID mPlatformGuid = MOTO_G20_SD_PLATFORM_GUID;
 STATIC EFI_GUID mDiagnosticGuid = MOTO_G20_SD_DIAGNOSTIC_GUID;
 STATIC EFI_GUID mControllerGuid = {0x45766337, 0xa136, 0x4b88, {0x93,0xe6,0x16,0x21,0x67,0xe9,0x4d,0x0d}};
 STATIC struct sdro_host mHost;
-STATIC MOTO_G20_SD_DIAGNOSTIC mDiagnostic = {1, 0, EFI_NOT_READY};
+STATIC MOTO_G20_SD_DIAGNOSTIC mDiagnostic = {3, 0, EFI_NOT_READY};
+STATIC struct sd_dma_buffer mDmaBuffer;
+STATIC EFI_PHYSICAL_ADDRESS mDmaPage;
 STATIC EFI_BLOCK_IO_MEDIA mMedia;
 STATIC EFI_HANDLE mController;
 STATIC EFI_EVENT mNotifyEvent;
@@ -31,6 +36,53 @@ typedef struct {
 } SD_DEVICE_PATH_COMPLETE;
 #pragma pack()
 STATIC SD_DEVICE_PATH_COMPLETE mPath;
+
+/* The bootstrap translation library admits only identity mappings. Allocate
+ * an owned low page, never point DMA at a caller buffer or an arbitrary RAM
+ * address. The page stays RESERVED even on failure/ExitBootServices: a late
+ * transfer cannot write into a subsequently reused BootServices allocation.
+ * Platform ExitBootServices separately stops the SD controller.
+ */
+STATIC void DmaCleanInvalidate(void *Context, void *Page, sd_u32 Length) {
+  (VOID)Context;
+  WriteBackInvalidateDataCacheRange(Page, Length);
+}
+STATIC void DmaInvalidate(void *Context, void *Page, sd_u32 Length) {
+  (VOID)Context;
+  InvalidateDataCacheRange(Page, Length);
+}
+STATIC void DmaBarrier(void *Context) {
+  (VOID)Context;
+  ArmDataSynchronizationBarrier();
+}
+STATIC EFI_STATUS ConfigureDma(VOID) {
+  EFI_STATUS Status;
+  struct sdro_dma Dma;
+  mDmaPage = MAX_UINT32;
+  Status = gBS->AllocatePages(AllocateMaxAddress, EfiReservedMemoryType, 1, &mDmaPage);
+  mDiagnostic.DmaAllocationStatus = Status;
+  if (EFI_ERROR(Status)) return Status;
+  /* This diagnostic still uses only the proven 66 MiB identity-mapped DXE
+   * arena. Revisit this constraint when the separate RAM expansion lands. */
+  if (mDmaPage < 0x83300000ULL || mDmaPage > 0x87500000ULL - 4096) {
+    mDiagnostic.DmaAllocationStatus = EFI_UNSUPPORTED;
+    return EFI_UNSUPPORTED;
+  }
+  if (!sd_dma_buffer_init(&mDmaBuffer, (VOID *)(UINTN)mDmaPage, mDmaPage,
+                          NULL, DmaCleanInvalidate, DmaInvalidate, DmaBarrier)) {
+    mDiagnostic.DmaAllocationStatus = EFI_DEVICE_ERROR;
+    return EFI_DEVICE_ERROR;
+  }
+  ZeroMem(&Dma, sizeof(Dma));
+  Dma.context = &mDmaBuffer;
+  Dma.address = (UINT32)(mDmaPage + 512);
+  Dma.prepare = sd_dma_buffer_prepare;
+  Dma.complete = sd_dma_buffer_complete;
+  mDiagnostic.DmaAddress = Dma.address;
+  Status = sdro_set_dma(&mHost, &Dma) == SDRO_OK ? EFI_SUCCESS : EFI_UNSUPPORTED;
+  mDiagnostic.DmaAllocationStatus = Status;
+  return Status;
+}
 
 STATIC EFI_STATUS ToEfi(enum sdro_status S) {
   switch (S) {
@@ -53,6 +105,27 @@ STATIC VOID Snapshot(enum sdro_status S) {
   mDiagnostic.Commands = mHost.commands;
   mDiagnostic.BlocksRead = mHost.blocks_read;
   mDiagnostic.CapacityBlocks = mHost.card.blocks;
+  mDiagnostic.TransferVersion = mHost.transfer_version;
+  mDiagnostic.TransferBlock = mHost.transfer_block;
+  mDiagnostic.TransferCount = mHost.transfer_count;
+  mDiagnostic.TransferMode = mHost.transfer_mode;
+  mDiagnostic.TransferCountOffset = mHost.transfer_count_offset;
+  mDiagnostic.SnapshotValid = mHost.snapshot_valid;
+  mDiagnostic.SnapshotPhase = mHost.snapshot_phase;
+  mDiagnostic.SnapshotIrq = mHost.snapshot_irq;
+  mDiagnostic.SnapshotIrqEnable = mHost.snapshot_irq_enable;
+  mDiagnostic.SnapshotPresent = mHost.snapshot_present;
+  mDiagnostic.SnapshotHostControl1 = mHost.snapshot_host_control1;
+  mDiagnostic.SnapshotHostControl2 = mHost.snapshot_host_control2;
+  mDiagnostic.SnapshotCommand = mHost.snapshot_command;
+  mDiagnostic.SnapshotResponse = mHost.snapshot_response;
+  mDiagnostic.SnapshotCount = mHost.snapshot_count;
+  mDiagnostic.SnapshotDmaLow = mHost.snapshot_dma_low;
+  mDiagnostic.SnapshotDmaHigh = mHost.snapshot_dma_high;
+  mDiagnostic.DmaAttempts = mDmaBuffer.attempts;
+  mDiagnostic.DmaCompletions = mDmaBuffer.completions;
+  mDiagnostic.DmaGuardsOk = (UINT32)mDmaBuffer.guards_ok;
+  mDiagnostic.DmaFaulted = (UINT32)mDmaBuffer.faulted;
   if (mHost.faulted) {
     mDiagnostic.Stage = 4;
     if (mMedia.MediaPresent) {
@@ -88,6 +161,11 @@ STATIC EFI_STATUS EFIAPI Read(EFI_BLOCK_IO_PROTOCOL *This, UINT32 MediaId, EFI_L
   for (Index = 0; Index < Count; ++Index) {
     Result = sdro_read_block(&mHost, Lba + Index, (sd_u8 *)Buffer + Index * 512, 512);
     if (Result != SDRO_OK) break;
+  }
+  if (Result != SDRO_OK && mDmaBuffer.prepared) {
+    /* Inspect guards without copying any failed transfer. The reserved page
+     * remains owned; abort is cache cleanup, not a claim of DMA quiescence. */
+    (VOID)sd_dma_buffer_abort(&mDmaBuffer);
   }
   Snapshot(Result);
   OldTpl = gBS->RaiseTPL(TPL_NOTIFY);
@@ -138,6 +216,9 @@ STATIC VOID EFIAPI TryStart(EFI_EVENT Event, VOID *Context) {
   Result = sdro_identify(&mHost);
   Snapshot(Result);
   if (Result != SDRO_OK) return;
+  Status = ConfigureDma();
+  mDiagnostic.Status = Status;
+  if (EFI_ERROR(Status)) return;
   ZeroMem(&mMedia, sizeof(mMedia));
   mMedia.MediaId = 1;
   mMedia.RemovableMedia = TRUE;
@@ -171,6 +252,7 @@ EFI_STATUS EFIAPI MotoG20SdEntry(EFI_HANDLE ImageHandle, EFI_SYSTEM_TABLE *Syste
   EFI_STATUS Status;
   EFI_HANDLE DiagnosticHandle = NULL;
   EFI_EVENT ExitEvent;
+  mDiagnostic.DmaAllocationStatus = EFI_NOT_READY;
   Status = gBS->InstallMultipleProtocolInterfaces(&DiagnosticHandle, &mDiagnosticGuid, &mDiagnostic, NULL);
   if (EFI_ERROR(Status)) return Status;
   /* Keep the image resident after publishing diagnostics, including failures. */

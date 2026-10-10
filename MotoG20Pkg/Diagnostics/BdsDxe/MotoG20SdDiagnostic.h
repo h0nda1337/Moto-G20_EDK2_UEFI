@@ -16,5 +16,14 @@ typedef struct {
   UINT32 BlocksRead;
   UINT64 CapacityBlocks;
   BOOLEAN Published;
+  /* Revision 2: CMD17 setup captured before hardware consumes the counter. */
+  UINT32 TransferVersion, TransferBlock, TransferCount, TransferMode, TransferCountOffset;
+  /* Revision 3: actual controller reads, not inferred transfer success. */
+  UINT32 SnapshotValid, SnapshotPhase, SnapshotIrq, SnapshotIrqEnable;
+  UINT32 SnapshotPresent, SnapshotHostControl1, SnapshotHostControl2;
+  UINT32 SnapshotCommand, SnapshotResponse, SnapshotCount;
+  UINT32 SnapshotDmaLow, SnapshotDmaHigh;
+  EFI_STATUS DmaAllocationStatus;
+  UINT32 DmaAddress, DmaAttempts, DmaCompletions, DmaGuardsOk, DmaFaulted;
 } MOTO_G20_SD_DIAGNOSTIC;
 #endif

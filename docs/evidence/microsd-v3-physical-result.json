@@ -1,0 +1,23 @@
+{
+  "status": "V3_PHYSICAL_CMD17_LBA0_DEVICE_ERROR_DESPITE_CORRECT_COUNT",
+  "candidate_sha256": "15FE4039A757FCD0102A9BD8C5D94E90A9EBE75199A145560A10AD807D52434C",
+  "photo_sha256": "0D0F4411C14B3506719044C68426B7312F295218B7816CCCD3B1AB66F91C5C58",
+  "observation_source": "Human-supplied IMG_1395.jpeg, visually transcribed",
+  "transcription": {
+    "version": "00040000",
+    "capabilities": "1E6D0080",
+    "capacity_blocks": 60456960,
+    "raw": "SDRAW: LBA=0 read=Device Error.",
+    "cmd17_setup": "version=00040000 block=00000200 count-reg=00 count=1 mode=0010",
+    "storage_drivers": "DiskIo, Partition, Fat: one image and binding each",
+    "after_raw_media_present": false,
+    "after_raw_media_id": 2,
+    "after_connect": "stage=4 status=Device Error cmd=17 irq=00000002 blocks=0",
+    "filesystem": "Not Found",
+    "windows_started": false
+  },
+  "interpretation": "Count programming is correct but the first sector still fails. IRQ2 is transfer complete without the PIO buffer-ready signal required by our software, not a CRC/timeout error. No Media is our subsequent fault latch.",
+  "hypothesis_not_confirmed": "Sprd PIO readiness may be unavailable; Motorola native data transfers use DMA.",
+  "candidate_consumed_do_not_repeat": true,
+  "windows_started": false
+}

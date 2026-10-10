@@ -1,17 +1,22 @@
 {
-  "date": "2026-10-05",
-  "scope": "Public source snapshot; physical firmware work paused",
+  "date": "2026-10-09",
+  "status": "PUBLIC_SOURCE_BUILD_AND_HOST_CHECKS_PASS",
+  "scope": "MicroSD V4 source publication; no phone operations during publication",
   "edk2_commit": "b03a21a63e3bd001f52c527e5a57feddb53a690b",
   "toolchain": "aarch64-linux-gnu-gcc (Debian 14.2.0-19) 14.2.0",
   "python": "Python 3.13.5",
-  "edk2_base_tools": "301 tests passed while building the clean dependency copy",
+  "source_consistency": {
+    "matched_pairs": 28,
+    "boot_policy": "V4_READ_PROOF_AND_HOLD_BEFORE_SHELL",
+    "report_sha256": "38259E6D0E53DC0CC1BAAD2785121BE52973F43F8AB2DA58E4345E46CA4F725C"
+  },
   "build": {
     "exit_code": 0,
     "modules": [
       {
         "name": "BdsDxe.efi",
-        "sha256": "B8E49DFAEEC276A3CCB63C98364FBBC94C2216DE1AF815B6133E0B06428B07D8",
-        "size": 176128
+        "sha256": "5C59D7B804A06546F184887D047348D6D4A8A60BF4CCA69A510BD8A6C2C34312",
+        "size": 192512
       },
       {
         "name": "DiskIoDxe.efi",
@@ -25,8 +30,8 @@
       },
       {
         "name": "MotoG20SdDxe.efi",
-        "sha256": "1F98C08E14C9D13BE5F5AA20D84C04BE56B8EC7BD8EA457B07EEF1C9B59D1770",
-        "size": 24576
+        "sha256": "6EF8D69D2C79B3A5F41C70D08F1A525F0871F07163451210F2EEDE16AA854166",
+        "size": 32768
       },
       {
         "name": "MotoG20SdPlatformDxe.efi",
@@ -38,28 +43,45 @@
         "sha256": "1313C94141BC7B44B23D9CC907A31A8B7C7155C2DE6FF1CE7D74728AA6509E94",
         "size": 53248
       }
-    ]
+    ],
+    "source_manifest": "microsd-v4-public-build-sources.json",
+    "source_manifest_sha256": "61DB3B5E17DCE71B43FA65809B07D2E87D9668368DBEDF13F90A1759AA6088F5",
+    "source_manifest_note": "sha256 records exact build input bytes; optional public_sha256 records Git LF normalization",
+    "log_sha256": "893679DB63B5B1A59080BA4754CB90C48D288FC22383152E9F00344693E40874"
   },
   "sd_host_tests": {
-    "core": 35,
-    "platform_mmio_model": 25,
-    "filesystem_probe_mock": 31
+    "core": 86,
+    "dma_buffer": 3621,
+    "raw_sector_proof": 3155,
+    "storage_connect": 64,
+    "mutated_device_paths": 10000,
+    "filesystem_probe": 37,
+    "platform_mmio_model": 25
   },
-  "memory_host_tests": {
-    "dtb_fixtures": 40,
-    "mutated_dtb_parses": 3000
+  "host_suite": {
+    "exit_code": 0,
+    "log_sha256": "1BA96C306F58E40295A039BDAA11797B0E226A88DA9113F2137F233E64F8AD85",
+    "command": "bash scripts/test_host.sh",
+    "limitations": "Mocks and sanitizer checks do not prove physical card reads or Windows boot"
   },
-  "cpu_host_tests": "Passed; unsafe preconditions, field preservation, null arguments",
+  "separate_winpe_platform_checks": "See host suite; plans remain outside the diagnostic firmware",
   "packaging": {
     "status": "PASS_OFFLINE_STRUCTURE_ONLY",
-    "image_sha256": "B8AAD4785740A6B0B73DEFF7107D40C227B7233AF661F83E6A125CD8E2537987",
-    "fv_sha256": "FA9F3F9C129D064CC92E40516B6D8997C13229903C6C851D2A240D8353BB8BFB",
     "ffs_count": 28,
+    "preserved_ffs": 22,
+    "image_sha256": "3A975E0B7B31DA11B55BF34D2F3300EFC86D90F6A6FE0C0059426C0768FE7266",
+    "fv_sha256": "CE5C0F456564BDB5531E91E127BBB8F8804D81706DCEF022EF1C34232E213AE7",
     "baseline_image_sha256": "B158F348BAF58A12660EDF15FA5B6CAD7C41312BC3E32C07AC68509070E9E1F4"
   },
   "rebuilt_image_physical_result": "NOT_TESTED",
-  "original_tested_image_sha256": "B94E2C12D466AEE3BAC25E11AF853399EDA5132DCD36346A08ACE3C7A6BB37CB",
+  "original_tested_image_sha256": "5B09AEAAE1168D20478123A5C000596701C6A6BDA825B93BE7FF6A7D157B2ADA",
+  "original_tested_fv_sha256": "A4F42EC006DE6FE9AB7CD25F7A14EF5C0FF89948D1BDB9B8B8A71B1B727352F0",
+  "original_tested_image_result": "LBA0_DEVICE_ERROR_CMD_REGISTER_READBACK_MISMATCH",
+  "physical_result_file": "microsd-v4-physical-result.json",
+  "physical_sector_read_verified": false,
+  "filesystem_verified": false,
   "winpe": "NOT_STARTED",
+  "phone_operations": [],
   "secret_scan": {
     "patterns": [
       "github_token",
@@ -67,7 +89,11 @@
       "aws_access_key",
       "private_key"
     ],
-    "files": 399,
+    "files": 582,
     "findings": 0
+  },
+  "public_import_hashes": {
+    "files": 554,
+    "mismatches": 0
   }
 }

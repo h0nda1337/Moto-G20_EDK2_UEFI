@@ -4,12 +4,13 @@
 #include "MotoG20SdProbe.h"
 #include "MotoG20SdDiagnostic.h"
 #include "MotoG20SdPlatformDiagnostic.h"
+#include "MotoG20RawSdProbe.h"
+#include "MotoG20StorageConnect.h"
 #include <Protocol/DevicePath.h>
 #include <Protocol/SimpleFileSystem.h>
 #include <Library/BaseMemoryLib.h>
 #include <Library/DevicePathLib.h>
 #include <Library/MemoryAllocationLib.h>
-#include <Library/UefiBootManagerLib.h>
 #include <Library/UefiBootServicesTableLib.h>
 #include <Library/UefiLib.h>
 
@@ -181,6 +182,7 @@ MotoG20SdProbe (
   UINTN BytesRead;
   BOOLEAN Matches;
   BOOLEAN Passed;
+  BOOLEAN RawPassed;
 
   if (mProbed) {
     return;
@@ -193,7 +195,7 @@ MotoG20SdProbe (
     Print (L"MICROSD: diagnostic unavailable (%r); read test not run.\r\n", Status);
     return;
   }
-  if (Diagnostic->Revision != 1) {
+  if (Diagnostic->Revision != 3) {
     Print (L"MICROSD: diagnostic revision unsupported; read test not run.\r\n");
     return;
   }
@@ -202,18 +204,49 @@ MotoG20SdProbe (
   Print (L"MICROSD: cmd=%u irq=%08x response=%08x commands=%u blocks=%u capacity=%Lu\r\n",
          Diagnostic->LastCommand, Diagnostic->LastIrq, Diagnostic->LastResponse,
          Diagnostic->Commands, Diagnostic->BlocksRead, Diagnostic->CapacityBlocks);
+  Print (L"SDMA: allocation=%r address=%08x\r\n", Diagnostic->DmaAllocationStatus,
+         Diagnostic->DmaAddress);
   if (!Diagnostic->Published) {
     Print (L"MICROSD: BlockIo not published; read test not run.\r\n");
     return;
   }
 
-  EfiBootManagerConnectAll ();
+  RawPassed = MotoG20RawSdProbe ();
+  Print (L"SDCMD17: setup version=%08x block=%08x count-reg=%02x count=%u mode=%04x\r\n",
+         Diagnostic->TransferVersion, Diagnostic->TransferBlock,
+         Diagnostic->TransferCountOffset, Diagnostic->TransferCount, Diagnostic->TransferMode);
+  Print (L"SDMA: tries=%u complete=%u guards=%u fault=%u\r\n",
+         Diagnostic->DmaAttempts, Diagnostic->DmaCompletions,
+         Diagnostic->DmaGuardsOk, Diagnostic->DmaFaulted);
+  Print (L"SDREG: valid=%04x phase=%u IRQ=%08x IE=%08x PRESENT=%08x\r\n",
+         Diagnostic->SnapshotValid, Diagnostic->SnapshotPhase, Diagnostic->SnapshotIrq,
+         Diagnostic->SnapshotIrqEnable, Diagnostic->SnapshotPresent);
+  Print (L"SDREG: HC1=%08x HC2=%04x CMD=%08x R1=%08x\r\n",
+         Diagnostic->SnapshotHostControl1, Diagnostic->SnapshotHostControl2,
+         Diagnostic->SnapshotCommand, Diagnostic->SnapshotResponse);
+  Print (L"SDREG: count=%u DMA=%08x:%08x\r\n", Diagnostic->SnapshotCount,
+         Diagnostic->SnapshotDmaHigh, Diagnostic->SnapshotDmaLow);
+  if (!RawPassed) {
+    Print (L"MICROSD: exact sector proof failed; filesystem test not run.\r\n");
+    return;
+  }
+  Status = MotoG20StorageConnect ();
+  Print (L"MICROSD: targeted storage connect=%r; file read still unverified.\r\n", Status);
+  Print (L"MICROSD: after connect stage=%u status=%r cmd=%u irq=%08x blocks=%u\r\n",
+         Diagnostic->Stage, Diagnostic->Status, Diagnostic->LastCommand,
+         Diagnostic->LastIrq, Diagnostic->BlocksRead);
   Handles = NULL;
   HandleCount = 0;
   Status = gBS->LocateHandleBuffer (ByProtocol, &gEfiSimpleFileSystemProtocolGuid,
                                   NULL, &HandleCount, &Handles);
   if (EFI_ERROR (Status)) {
+    if (Handles != NULL) FreePool (Handles);
     Print (L"MICROSD: no filesystem (%r); read test not run.\r\n", Status);
+    return;
+  }
+  if (Handles == NULL || HandleCount == 0 || HandleCount > 64) {
+    if (Handles != NULL) FreePool (Handles);
+    Print (L"MICROSD: invalid/bounded filesystem inventory; read test not run.\r\n");
     return;
   }
   MatchingVolumes = 0;
